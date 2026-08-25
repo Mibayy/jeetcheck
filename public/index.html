@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>JEET CHECK — how much you sold too early</title>
+<meta name="description" content="Paste a Solana wallet. See what you paperhanded, what you round-tripped, and what you actually gained. In SOL.">
+<meta property="og:title" content="JEET CHECK">
+<meta property="og:description" content="What you sold too early, and whether you were right.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:      oklch(0.132 0.016 268);
+  --void-2:    oklch(0.176 0.020 266);
+  --void-3:    oklch(0.228 0.024 264);
+  --edge:      oklch(0.318 0.026 266);
+  --edge-2:    oklch(0.262 0.020 266);
+  --bone:      oklch(0.968 0.010 96);
+  --bone-2:    oklch(0.968 0.010 96 / 0.70);
+  --bone-3:    oklch(0.968 0.010 96 / 0.42);
+  --bone-4:    oklch(0.968 0.010 96 / 0.24);
+  --acid:      oklch(0.886 0.212 122);
+  --acid-deep: oklch(0.640 0.170 126);
+  --acid-wash: oklch(0.886 0.212 122 / 0.12);
+  --hot:       oklch(0.702 0.235 16);
+  --hot-deep:  oklch(0.520 0.190 18);
+  --hot-wash:  oklch(0.702 0.235 16 / 0.12);
+  --ice:       oklch(0.842 0.132 206);
+  --ice-deep:  oklch(0.580 0.110 210);
+  --ice-wash:  oklch(0.842 0.132 206 / 0.12);
+  --fat: 'Archivo Black', 'Haettenschweiler', Impact, system-ui;
+  --mono: 'Space Mono', 'SF Mono', Menlo, monospace;
+  --pop: cubic-bezier(.2,1.5,.4,1);
+  --smooth: cubic-bezier(.16,1,.3,1);
+  --tone: var(--acid);
+  --tone-deep: var(--acid-deep);
+  --tone-wash: var(--acid-wash);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--mono);color:var(--bone);overflow:hidden;
+  background:
+    radial-gradient(1200px 700px at 8% -10%,  oklch(0.34 0.13 128 / 0.28), transparent 60%),
+    radial-gradient(1000px 620px at 96% 2%,   oklch(0.32 0.16 16 / 0.24), transparent 58%),
+    radial-gradient(1400px 1000px at 50% 122%, oklch(0.28 0.10 210 / 0.32), transparent 64%),
+    linear-gradient(179deg, var(--void) 0%, oklch(0.108 0.014 270) 100%);
+}
+body::before{
+  content:'';position:fixed;inset:-40px;pointer-events:none;z-index:0;opacity:.34;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.86' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='200' height='200' filter='url(%23n)' opacity='0.5'/></svg>");
+}
+
+.stage{position:relative;z-index:1;height:100dvh;display:grid;place-items:center;padding:14px}
+.screen{display:none;width:100%;max-width:840px}
+.screen.on{display:block;animation:rise 520ms var(--smooth) both}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:clamp(18px,4vh,36px)}
+.brand .glyph{width:34px;height:34px;border-radius:11px;border:2px solid var(--acid);display:grid;place-items:center;background:var(--acid-wash)}
+.brand .txt{font-family:var(--fat);font-size:17px;line-height:1}
+.brand .txt i{font-style:normal;color:var(--acid)}
+.beta{font-size:9px;font-weight:700;letter-spacing:.13em;padding:3px 7px;border-radius:999px;background:var(--hot);color:oklch(0.16 0.04 20);margin-left:7px;vertical-align:.22em}
+h1{font-family:var(--fat);font-size:clamp(23px,4.4vw,36px);line-height:1.1;letter-spacing:-.022em;text-transform:uppercase}
+h1 .a{color:var(--acid)} h1 .h{color:var(--hot)}
+.lede{margin-top:15px;font-size:12.5px;line-height:1.75;color:var(--bone-2);max-width:520px}
+form{margin-top:clamp(16px,3.4vh,28px);display:flex;gap:10px;flex-wrap:wrap}
+.field{flex:1 1 300px;background:linear-gradient(168deg,var(--void-2),oklch(0.148 0.017 268));
+  border:2px solid var(--edge-2);border-radius:16px;
+  transition:border-color 280ms var(--smooth), box-shadow 280ms var(--smooth)}
+.field:focus-within{border-color:var(--acid);box-shadow:0 0 0 4px var(--acid-wash)}
+.field input{width:100%;background:transparent;border:0;outline:0;color:var(--bone);font-family:var(--mono);font-size:13px;padding:16px 15px}
+.field input::placeholder{color:var(--bone-4)}
+.go{flex:0 0 auto;cursor:pointer;border:2px solid oklch(0.50 0.15 128);border-radius:16px;
+  background:linear-gradient(168deg,var(--acid),oklch(0.74 0.19 130));
+  color:oklch(0.18 0.06 130);font-family:var(--fat);font-size:14px;letter-spacing:.03em;
+  text-transform:uppercase;padding:15px 27px;
+  transition:transform 300ms var(--pop), filter 300ms var(--smooth), box-shadow 300ms var(--smooth);
+  box-shadow:0 6px 0 oklch(0.44 0.13 128)}
+.go:hover{transform:translateY(-3px);filter:brightness(1.07);box-shadow:0 9px 0 oklch(0.44 0.13 128)}
+.go:active{transform:translateY(3px);box-shadow:0 2px 0 oklch(0.44 0.13 128)}
+.go[disabled]{opacity:.55;cursor:progress;transform:none}
+.hint{margin-top:13px;font-size:11px;color:var(--bone-4)}
+.err{margin-top:15px;font-size:12.5px;color:var(--hot);border-left:3px solid var(--hot);padding-left:12px;line-height:1.6}
+.pulse{margin-top:20px;width:100%;height:4px;border-radius:999px;background:var(--void-3);overflow:hidden;position:relative;display:none}
+.pulse.on{display:block}
+.pulse::after{content:'';position:absolute;inset:0;width:32%;border-radius:999px;
+  background:linear-gradient(90deg,transparent,var(--acid),transparent);
+  animation:sweep 1400ms cubic-bezier(.45,.05,.35,1) infinite}
+@keyframes sweep{0%{transform:translateX(-110%)}100%{transform:translateX(330%)}}
+.steps{margin-top:13px;font-size:11.5px;color:var(--bone-3);line-height:1.9;min-height:1.9em}
+
+.frame{border-radius:26px;border:2px solid var(--edge-2);overflow:hidden;
+  background:linear-gradient(168deg,oklch(0.190 0.021 266),oklch(0.136 0.016 268));
+  box-shadow:0 40px 90px -46px oklch(0 0 0 / 0.95)}
+.tabs{display:flex;gap:5px;padding:6px;border-bottom:2px solid var(--edge-2);background:oklch(0.152 0.018 268)}
+.tab{flex:1 1 0;cursor:pointer;border:0;border-radius:13px;background:transparent;color:var(--bone-3);
+  font-family:var(--mono);font-weight:700;font-size:clamp(10px,1.5vw,12px);letter-spacing:.07em;
+  text-transform:uppercase;padding:11px 8px;white-space:nowrap;
+  transition:background-color 280ms var(--smooth), color 280ms var(--smooth), box-shadow 280ms var(--smooth)}
+.tab:hover{color:var(--bone)}
+.tab[aria-selected="true"]{background:linear-gradient(168deg,var(--void-3),var(--void-2));color:var(--bone);box-shadow:inset 0 0 0 2px var(--edge)}
+.tab.t-a[aria-selected="true"]{color:var(--acid);box-shadow:inset 0 0 0 2px var(--acid-deep)}
+.tab.t-b[aria-selected="true"]{color:var(--hot);box-shadow:inset 0 0 0 2px var(--hot-deep)}
+.tab.t-c[aria-selected="true"]{color:var(--ice);box-shadow:inset 0 0 0 2px var(--ice-deep)}
+.tab.t-d[aria-selected="true"]{color:var(--bone);box-shadow:inset 0 0 0 2px var(--edge)}
+.tab small{display:block;font-weight:400;font-size:9.5px;letter-spacing:.04em;opacity:.6;margin-top:3px;text-transform:none}
+
+.body{padding:clamp(13px,2.4vh,20px)}
+.strip{display:flex;gap:9px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:thin}
+.strip::-webkit-scrollbar{height:5px}
+.strip::-webkit-scrollbar-thumb{background:var(--edge);border-radius:999px}
+.pick{position:relative;flex:1 0 auto;min-width:186px;max-width:250px;cursor:pointer;text-align:left;
+  border:2px solid var(--edge-2);border-radius:16px;padding:11px 12px;
+  background:linear-gradient(168deg,var(--void-3),var(--void-2));color:var(--bone);
+  display:flex;align-items:center;gap:10px;font-family:var(--mono);
+  transition:border-color 260ms var(--smooth), background-color 260ms var(--smooth), transform 260ms var(--pop)}
+.pick:hover{transform:translateY(-2px);border-color:var(--edge)}
+.pick[aria-current="true"]{border-color:var(--tone-deep);background:linear-gradient(168deg,var(--tone-wash),var(--void-2))}
+.pick .rank{position:absolute;top:-8px;right:-6px;width:21px;height:21px;border-radius:999px;
+  display:grid;place-items:center;font-family:var(--fat);font-size:10px;
+  background:var(--void-3);color:var(--bone-3);border:2px solid var(--edge)}
+.pick[aria-current="true"] .rank{background:var(--tone);color:oklch(0.18 0.05 130);border-color:var(--tone)}
+.av{position:relative;width:32px;height:32px;flex:0 0 32px;border-radius:999px;border:2px solid var(--edge);
+  background:linear-gradient(168deg,var(--void-3),var(--void-2));display:grid;place-items:center;overflow:hidden}
+.av b{font-size:10px;color:var(--bone-3)}
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:999px}
+.pick .who{min-width:0;flex:1 1 auto}
+.pick .s{display:block;font-family:var(--fat);font-size:13px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pick .s .dup{font-family:var(--mono);font-style:normal;font-size:9.5px;font-weight:400;color:var(--bone-4);margin-left:6px;letter-spacing:.04em}
+.pick .n{display:block;font-size:10px;color:var(--bone-3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pick .v{display:block;font-size:11px;margin-top:5px;color:var(--tone);font-weight:700}
+.pick .v em{font-style:normal;color:var(--bone-3);font-weight:400}
+
+.totline{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:clamp(11px,2.2vh,18px);flex-wrap:wrap}
+.totline .lbl{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--bone-2)}
+.ca{font-size:11px;color:var(--bone-3);display:inline-flex;align-items:center;gap:7px;cursor:pointer;
+  border:0;background:transparent;font-family:var(--mono);transition:color 240ms var(--smooth)}
+.ca:hover{color:var(--tone)}
+.big{font-family:var(--fat);font-size:clamp(25px,5.4vw,44px);line-height:1.05;letter-spacing:-.028em;
+  margin-top:7px;color:var(--tone);font-variant-numeric:tabular-nums}
+.big .sub{font-family:var(--mono);font-size:clamp(11px,1.8vw,15px);color:var(--bone-3);font-weight:400;letter-spacing:0;margin-left:9px}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:clamp(11px,2.2vh,18px)}
+.cell{border:2px solid var(--edge-2);border-radius:16px;padding:clamp(10px,1.7vh,15px) 13px;text-align:center;
+  background:oklch(0.162 0.018 268)}
+.cell .k{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-3)}
+.cell .v{font-family:var(--fat);font-size:clamp(14px,2.4vw,20px);margin-top:6px;font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:-.015em}
+.cell .v em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--bone-3);font-weight:400;margin-left:5px;letter-spacing:0}
+.cell.hi .v{color:var(--tone)}
+
+.foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  margin-top:clamp(11px,2.2vh,18px);padding-top:clamp(9px,1.7vh,14px);border-top:2px solid var(--edge-2)}
+.wal{min-width:0}
+.wal .k{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--bone-4)}
+.wal .v{font-size:12px;color:var(--bone-2);margin-top:3px}
+.acts{display:flex;gap:8px}
+.ghost{cursor:pointer;border:2px solid var(--edge);border-radius:13px;background:var(--void-2);color:var(--bone-2);
+  font-family:var(--mono);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:11px 15px;
+  transition:transform 260ms var(--pop), border-color 260ms var(--smooth), color 260ms var(--smooth)}
+.ghost:hover{transform:translateY(-2px);border-color:var(--tone);color:var(--tone)}
+.ghost.solid{background:linear-gradient(168deg,var(--acid),oklch(0.74 0.19 130));color:oklch(0.18 0.06 130);border-color:oklch(0.50 0.15 128)}
+.ghost.solid:hover{color:oklch(0.18 0.06 130);filter:brightness(1.06)}
+.note{margin-top:9px;font-size:10.5px;line-height:1.6;color:var(--bone-4)}
+.note .warn{color:var(--hot)}
+.empty{padding:clamp(24px,7vh,58px) 10px;text-align:center;color:var(--bone-3);font-size:13px;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <section class="screen on" id="s1">
+    <div class="brand">
+      <div class="glyph"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 14 L9 4 L14 12 L20 6" stroke="oklch(0.886 0.212 122)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="4" r="2.2" fill="oklch(0.886 0.212 122)"/></svg></div>
+      <div class="txt">JEET<i>CHECK</i><span class="beta">BETA</span></div>
+    </div>
+    <h1>You <span class="h">jeeted</span>.<br>The real question: <span class="a">were you wrong?</span></h1>
+    <p class="lede">Paste a Solana wallet. We reprice every position you closed at the token's highest point after you bought in, and split it three ways: what you paperhanded, what you round-tripped, and what you actually kept. All in SOL.</p>
+    <form id="form" autocomplete="off">
+      <div class="field"><input id="wallet" placeholder="paste your solana wallet" spellcheck="false"></div>
+      <button class="go" id="go" type="submit">Check</button>
+    </form>
+    <p class="hint">Read only. No signature, no wallet connection, no seed phrase. Ever.</p>
+    <div class="pulse" id="pulse"></div>
+    <div class="steps" id="steps"></div>
+    <div id="err" class="err" style="display:none"></div>
+  </section>
+
+  <section class="screen" id="s2">
+    <div class="frame">
+      <div class="tabs" role="tablist">
+        <button class="tab t-a" role="tab" aria-selected="true"  data-k="paper" type="button">Paperhand<small id="c-paper"></small></button>
+        <button class="tab t-b" role="tab" aria-selected="false" data-k="round" type="button">Roundtrip<small id="c-round"></small></button>
+        <button class="tab t-c" role="tab" aria-selected="false" data-k="gain"  type="button">Gained<small id="c-gain"></small></button>
+        <button class="tab t-d" role="tab" aria-selected="false" data-k="late"  type="button">Too late<small id="c-late"></small></button>
+      </div>
+      <div class="body">
+        <div class="strip" id="strip"></div>
+        <div id="detail"></div>
+        <div class="foot">
+          <div class="wal">
+            <div class="k">Wallet</div>
+            <div class="v" id="f-wallet"></div>
+          </div>
+          <div class="acts">
+            <button class="ghost" id="again" type="button">New wallet</button>
+            <button class="ghost solid" id="share" type="button">Share</button>
+          </div>
+        </div>
+        <div class="note" id="note"></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+
+const sol = n => {
+  if (n === null || n === undefined || !isFinite(n)) return '—';
+  const a = Math.abs(n);
+  if (a >= 100000) return Math.round(n).toLocaleString('en-US');
+  if (a >= 1000) return n.toLocaleString('en-US', {maximumFractionDigits:0});
+  if (a >= 1) return n.toFixed(2);
+  return n.toFixed(3);
+};
+const usd = n => {
+  if (n === null || n === undefined || !isFinite(n)) return '';
+  const a = Math.abs(n);
+  if (a >= 1e6) return '$' + (n/1e6).toFixed(2).replace(/\.?0+$/,'') + 'M';
+  if (a >= 1000) return '$' + Math.round(n).toLocaleString('en-US');
+  return '$' + n.toFixed(2);
+};
+const qty = n => {
+  if (!isFinite(n)) return '—';
+  if (n >= 1e9) return (n/1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return n.toFixed(2);
+};
+const short = a => a ? (a.slice(0,4) + '…' + a.slice(-4)) : '—';
+const dur = s => {
+  if (s === null || s === undefined) return '—';
+  if (s < 60) return s + ' sec';
+  if (s < 3600) return Math.round(s/60) + ' min';
+  if (s < 86400) return (s/3600).toFixed(1).replace('.0','') + ' hrs';
+  return (s/86400).toFixed(1).replace('.0','') + ' days';
+};
+const pic = u => {
+  if (!u) return '';
+  return (DATA && DATA.logo_proxy) ? ('/api/logo?u=' + encodeURIComponent(u)) : u;
+};
+
+let DATA = null, BUCKETS = null, TAB = 'paper', HOMONYMES = new Set();
+let SEL = {paper:0, round:0, gain:0, late:0};
+const TONE = {paper:'acid', round:'hot', gain:'ice', late:'hot'};
+
+// How the three tabs are sorted.
+//   paperhand : the peak came AFTER you exited, you left too early
+//   roundtrip : you rode through the peak without selling, then sold below it
+//   gained    : the lines where you actually made money
+// The peak's date and the exit's date are enough to decide. A position whose
+// peak hasn't been verified is NOT dumped into paperhand by default: we don't
+// know, and writing it wrong would be worse than omitting it.
+function ranger(positions){
+  const paper = [], round = [];
+  const classe = new Set();
+  for (const p of positions) {
+    if (!p.peak_measured || !p.peak_at || !p.end_holding_at) continue;
+    (p.peak_at > p.end_holding_at ? paper : round).push(p);
+    classe.add(p.address);
+  }
+  const gain = positions.filter(p => (p.realized_profit_sol ?? 0) > 0);
+  // Late entries: the token had already made its peak BEFORE the buy. This
+  // isn't a paperhand, it's the opposite, and confusing it with the others
+  // was exactly the bug fixed on CATE.
+  const late = positions.filter(p => p.late_peak_at && p.entry_price > 0);
+  for (const p of late) classe.add(p.address);
+  // Unclassified = neither sorted into a tab nor identified as a late entry.
+  const inconnu = positions.filter(p => !classe.has(p.address)).length;
+  const tri = (l, k) => l.slice().sort((a,b) => (b[k] ?? 0) - (a[k] ?? 0));
+  return {
+    paper: tri(paper, 'paperhand_sol'),
+    round: tri(round, 'paperhand_sol'),
+    gain:  tri(gain,  'realized_profit_sol'),
+    late:  late.slice().sort((a,b) => (b.late_peak_price/b.entry_price) - (a.late_peak_price/a.entry_price)),
+    inconnu,
+  };
+}
+
+const STEPS = ['Opening the case file','Rebuilding your positions','Pulling each token peak','Reaching a verdict'];
+let stepTimer = null;
+function runSteps(){
+  let i = 0;
+  const tick = () => {
+    if (i >= STEPS.length) i = STEPS.length - 1;
+    $('#steps').textContent = String(i+1).padStart(2,'0') + '  ' + STEPS[i];
+    i++;
+    stepTimer = setTimeout(tick, 2000);
+  };
+  tick();
+}
+
+$('#form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const w = $('#wallet').value.trim();
+  $('#err').style.display = 'none';
+  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(w)) {
+    $('#err').textContent = 'That does not look like a Solana address.';
+    $('#err').style.display = 'block'; return;
+  }
+  $('#go').disabled = true; $('#pulse').classList.add('on'); runSteps();
+  try {
+    const r = await fetch('/api/analyze?wallet=' + encodeURIComponent(w));
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'Error ' + r.status);
+    DATA = j; BUCKETS = ranger(j.positions);
+    // Spot symbols carried by several mints: on pump.fun this is the norm,
+    // not the exception, and two different "Yomogi" tokens across two tabs
+    // read like a contradiction.
+    const vus = new Map();
+    for (const p of j.positions) {
+      const k = (p.symbol || '?').toLowerCase();
+      if (!vus.has(k)) vus.set(k, new Set());
+      vus.get(k).add(p.address);
+    }
+    HOMONYMES = new Set([...vus].filter(([, a]) => a.size > 1).map(([k]) => k));
+    SEL = {paper:0, round:0, gain:0, late:0};
+    TAB = BUCKETS.paper.length ? 'paper' : (BUCKETS.round.length ? 'round' : 'gain');
+    document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x.dataset.k === TAB));
+    $('#s1').classList.remove('on'); $('#s2').classList.add('on');
+    paint();
+  } catch (err) {
+    $('#err').textContent = err.message; $('#err').style.display = 'block';
+  } finally {
+    clearTimeout(stepTimer); $('#pulse').classList.remove('on'); $('#steps').textContent = ''; $('#go').disabled = false;
+  }
+});
+
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
+  TAB = b.dataset.k;
+  document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === b));
+  paint();
+}));
+
+function cell(k, v, sub, hi){
+  return '<div class="cell' + (hi ? ' hi' : '') + '"><div class="k">' + k + '</div>'
+       + '<div class="v">' + v + (sub ? '<em>' + sub + '</em>' : '') + '</div></div>';
+}
+
+function paint(){
+  const root = document.documentElement.style;
+  root.setProperty('--tone', 'var(--' + TONE[TAB] + ')');
+  root.setProperty('--tone-deep', 'var(--' + TONE[TAB] + '-deep)');
+  root.setProperty('--tone-wash', 'var(--' + TONE[TAB] + '-wash)');
+
+  const t = { ...DATA.totals, stale: DATA.stale, cached_age_minutes: DATA.cached_age_minutes };
+  $('#c-paper').textContent = BUCKETS.paper.length + ' tokens';
+  $('#c-round').textContent = BUCKETS.round.length + ' tokens';
+  $('#c-gain').textContent  = BUCKETS.gain.length + ' tokens';
+  $('#c-late').textContent  = BUCKETS.late.length + ' tokens';
+  $('#f-wallet').textContent = short(DATA.wallet);
+
+  const e = t.ecartes || {};
+  const off = (e.non_memecoin || 0) + (e.ath_invraisemblable || 0);
+  const classes = BUCKETS.paper.length + BUCKETS.round.length;
+  const bits = [];
+
+  // When almost nothing could be verified, say so first and clearly: an
+  // empty tab with no explanation reads like a failure.
+  if (classes < 3 && BUCKETS.inconnu > 5) {
+    bits.push('<span class="warn">Peak data was rate-limited, so only ' + classes
+      + ' position' + (classes === 1 ? '' : 's') + ' could be classified. Reload in a minute for the full split.</span>');
+  } else {
+    bits.push('Peaks measured from your entry, never before it.');
+  }
+  if (t.partiel) bits.push('<span class="warn">Big wallet: the analysis hit its time budget, so this is a partial view of it.</span>');
+  if (t.sommets_possibles > t.sommets_cherches) bits.push('Totals cover all '
+    + t.positions_sold + ' sold positions. Peaks resolved for the '
+    + t.sommets_cherches + ' largest so far; the rest fills in the background, reload later for more.');
+  if (t.stale) bits.push('Showing a cached result from ' + t.cached_age_minutes + ' min ago.');
+  if (off) bits.push(off + ' non-memecoin excluded.');
+  if (BUCKETS.inconnu) bits.push(BUCKETS.inconnu + ' unclassified, no candle history.');
+  $('#note').innerHTML = bits.join(' ')
+    + (TAB === 'round' ? ' <span class="warn">Round-tripped: the peak happened while you were still holding.</span>' : '')
+    + (TAB === 'late' ? ' <span class="warn">These are not paperhands: the token had already topped before you bought. You were late, not early.</span>' : '');
+
+  const list = BUCKETS[TAB];
+  if (!list.length) {
+    $('#strip').innerHTML = '';
+    $('#detail').innerHTML = '<div class="empty">'
+      + (BUCKETS.inconnu > 5 && classes < 3
+          ? 'Peak data is rate-limited right now, so this split could not be computed.<br>Reload in a minute.'
+          : 'Nothing in this bucket for this wallet.')
+      + '</div>';
+    return;
+  }
+  if (SEL[TAB] >= list.length) SEL[TAB] = 0;
+
+  const cle = TAB === 'gain' ? 'realized_profit_sol'
+            : TAB === 'late' ? 'bought_cost_sol' : 'paperhand_sol';
+  $('#strip').innerHTML = list.slice(0, 10).map((p, i) => {
+    const ini = (p.symbol || '?').slice(0,2).toUpperCase();
+    let pct = null;
+    if (TAB === 'late') {
+      pct = p.entry_price > 0 ? (100 * p.late_peak_price / p.entry_price) : null;
+    } else {
+      const base = TAB === 'gain' ? p.bought_cost_sol : p.sold_income_sol;
+      pct = (base > 0) ? (100 * (p[cle] ?? 0) / base) : null;
+    }
+    return '<button class="pick" type="button" data-i="' + i + '" aria-current="' + (i === SEL[TAB]) + '">'
+      + '<span class="rank">' + (i+1) + '</span>'
+      + '<span class="av"><b>' + ini + '</b>' + (p.logo ? '<img src="' + pic(p.logo) + '" alt="" loading="lazy">' : '') + '</span>'
+      + '<span class="who"><span class="s">' + (p.symbol || '?')
+      + (HOMONYMES.has((p.symbol || '?').toLowerCase())
+          ? '<em class="dup">' + p.address.slice(0,4) + '</em>' : '') + '</span>'
+      + '<span class="n">' + (p.name || '') + '</span>'
+      + '<span class="v">' + sol(p[cle]) + ' SOL'
+      + (pct !== null ? ' <em>(' + Math.round(pct).toLocaleString('en-US') + '%)</em>' : '')
+      + '</span></span></button>';
+  }).join('');
+
+  $('#strip').querySelectorAll('.pick').forEach(b => b.addEventListener('click', () => {
+    SEL[TAB] = Number(b.dataset.i); paint();
+  }));
+
+  const p = list[SEL[TAB]];
+  const titre = TAB === 'paper' ? 'Total paperhanded'
+              : TAB === 'round' ? 'Total round-tripped'
+              : TAB === 'gain'  ? 'Total gained'
+              : 'You bought after the top';
+  const gros = TAB === 'gain' ? p.realized_profit_sol
+             : TAB === 'late' ? p.bought_cost_sol : p.paperhand_sol;
+  const grosUsd = TAB === 'gain' ? p.realized_profit
+                : TAB === 'late' ? p.bought_cost : p.paperhand;
+  const retard = (TAB === 'late' && p.late_peak_at && p.start_holding_at)
+    ? p.start_holding_at - p.late_peak_at : null;
+  const mult = (TAB === 'late' && p.entry_price > 0)
+    ? p.late_peak_price / p.entry_price : null;
+
+  $('#detail').innerHTML =
+      '<div class="totline"><span class="lbl">' + titre + '</span>'
+    + '<button class="ca" type="button" id="copyca" title="Copy contract address"><span id="catxt">CA: ' + short(p.address) + '</span>'
+    + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="3" stroke="currentColor" stroke-width="2"/><path d="M5 15V6a3 3 0 0 1 3-3h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+    + '</button></div>'
+    + '<div class="big">' + sol(gros) + ' SOL<span class="sub">' + usd(grosUsd) + ' · '
+    + qty(p.sold_amount) + ' ' + (p.symbol || '')
+    + (HOMONYMES.has((p.symbol || '?').toLowerCase()) ? ' (' + p.address.slice(0,4) + '…)' : '')
+    + '</span></div>'
+    + '<div class="grid">'
+    + (TAB === 'late'
+        ? cell('Bought with', sol(p.bought_cost_sol) + ' SOL', usd(p.bought_cost), false)
+          + cell('Sold for', sol(p.sold_income_sol) + ' SOL', usd(p.sold_income), false)
+          + cell('Top was', mult ? (mult.toFixed(1) + '× your entry') : '—', '', true)
+          + cell('You arrived', retard !== null ? (dur(retard) + ' late') : '—', '', false)
+        : cell('Bought with', sol(p.bought_cost_sol) + ' SOL', usd(p.bought_cost), false)
+          + cell('Sold for', sol(p.sold_income_sol) + ' SOL', usd(p.sold_income), false)
+          + cell(TAB === 'gain' ? 'Kept' : 'Fumbled', sol(gros) + ' SOL', usd(grosUsd), true)
+          + cell('Held for', dur(p.held_seconds),
+                  p.total_sells > 1 ? ('in ' + p.total_sells + ' sells') : '', false))
+    + '</div>';
+
+  $('#copyca').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(p.address);
+      $('#catxt').textContent = 'CA copied';
+      setTimeout(() => { $('#catxt').textContent = 'CA: ' + short(p.address); }, 1600);
+    } catch {
+      $('#catxt').textContent = 'copy blocked';
+      setTimeout(() => { $('#catxt').textContent = 'CA: ' + short(p.address); }, 1600);
+    }
+  });
+}
+
+$('#again').addEventListener('click', () => {
+  $('#s2').classList.remove('on'); $('#s1').classList.add('on');
+  $('#wallet').value = ''; $('#wallet').focus();
+});
+
+$('#share').addEventListener('click', async () => {
+  const list = BUCKETS[TAB]; if (!list.length) return;
+  const p = list[SEL[TAB]];
+  const mot = TAB === 'paper' ? 'paperhanded' : TAB === 'round' ? 'round-tripped' : 'made';
+  const val = TAB === 'gain' ? p.realized_profit_sol : p.paperhand_sol;
+  const txt = 'I ' + mot + ' ' + sol(val) + ' SOL on ' + (p.symbol || '?')
+    + '.\nHeld for ' + dur(p.held_seconds) + '. jeetcheck';
+  const fin = m => { $('#share').textContent = m; setTimeout(() => { $('#share').textContent = 'Share'; }, 1600); };
+  try { await navigator.clipboard.writeText(txt); fin('Copied'); }
+  catch { fin('Blocked'); }
+});
+
+const pre = new URLSearchParams(location.search).get('w');
+if (pre) { $('#wallet').value = pre; $('#form').dispatchEvent(new Event('submit')); }
+</script>
+</body>
+</html>

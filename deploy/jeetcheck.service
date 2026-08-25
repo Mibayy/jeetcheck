@@ -1,0 +1,19 @@
+[Unit]
+Description=JEETCHECK - paperhand analysis for Solana wallets
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+WorkingDirectory=/opt/jeetcheck
+ExecStart=/usr/bin/node server/index.js
+Environment=NODE_ENV=production
+Restart=always
+RestartSec=5
+# A cold analysis takes ~90 s: don't mistake slowness for a failure.
+TimeoutStopSec=20
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
