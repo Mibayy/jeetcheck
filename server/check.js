@@ -23,7 +23,7 @@ import { getSolSeries, faireConvertisseur } from "./solprice.js";
 import { sommetsToken, maximaApres } from "./gmgnkline.js";
 import { athPumpFun, estPumpFun } from "./pumpfun.js";
 import {
-  normaliserTrades, agregerTrades, regretParVente, chiffrerDetenu, verdict,
+  normaliserTrades, agregerTrades, regretParVente, chiffrerDetenu, echantillonner, verdict,
   isValidSolanaAddress, nettoyerSymbole, num, round2,
 } from "./positions.js";
 
@@ -249,6 +249,14 @@ export async function checkToken(mint, wallets) {
       ventes_sans_sommet: chiffrage.ventes_sans_sommet,
       ventes_au_dessus_des_bougies: chiffrage.ventes_au_dessus_des_bougies,
     },
+    // The line the card draws. Downsampled here rather than on the page: the
+    // sampler is the one that cannot lose the peak, and it is tested.
+    courbe: sommets?.serie?.length ? {
+      points: echantillonner(sommets.serie, 140),
+      ventes: agg.ventes.map((v) => ({ t: v.t, prix: v.prix })),
+      entree: agg.entree,
+      sommet: sommets.depuis ? { t: sommets.depuis.quand, prix: sommets.depuis.prix } : null,
+    } : null,
     // Its own block, deliberately outside `verdict`: nothing here was decided,
     // so none of it belongs to a verdict. null when the position is closed.
     detenu: detenu ? {

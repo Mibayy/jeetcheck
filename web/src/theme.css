@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+/* Jetons nommes, jamais l'echelle Tailwind par defaut.
+   interdits-design.py refuse les utilitaires de couleur et d'ombre livres avec
+   le framework, ainsi que tout rayon inferieur a 16 px. Tout passe donc par ces
+   noms, y compris les rayons et les courbes d'animation.
+   (Le detecteur lit le fichier entier : citer un motif interdit dans un
+   commentaire le declenche, ce qui est le comportement voulu.) */
+@theme {
+  --color-void:      #0E0F12;   /* la page */
+  --color-pit:       #16181E;   /* les cartes */
+  --color-pit-2:     #1C1F27;   /* les blocs dans les cartes */
+  --color-seam:      #262A33;   /* les bordures */
+  --color-seam-lit:  #363C49;
+
+  --color-gain:      #22C55E;
+  --color-gain-lit:  #4ADE80;
+  --color-gain-wash: #22C55E1F;
+  --color-miss:      #EF4444;
+  --color-miss-lit:  #FB7185;
+  --color-miss-wash: #EF44441F;
+  --color-drift:     #5B7CFA;   /* l'accent bleu-violet, tenu en laisse */
+  --color-drift-wash:#5B7CFA1A;
+
+  /* Du blanc avec une opacite choisie, pas un gris pris au hasard. */
+  --color-bone:      #E9ECF1;
+  --color-bone-2:    #E9ECF1B3;
+  --color-bone-3:    #E9ECF173;
+  --color-bone-4:    #E9ECF140;
+
+  --font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-sans:    "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-block: 16px;
+  --radius-card:  22px;
+
+  --ease-pop:    cubic-bezier(.2, 1.5, .4, 1);
+  --ease-smooth: cubic-bezier(.16, 1, .3, 1);
+}
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  color: var(--color-bone);
+  font-family: var(--font-sans);
+  min-height: 100dvh;
+  /* Un fond, c'est un degrade sourd plus du grain. Jamais un noir plat. */
+  background:
+    radial-gradient(1100px 620px at 12% -12%, #22C55E1A, transparent 58%),
+    radial-gradient(900px 560px at 92% 0%,   #EF44441A, transparent 56%),
+    radial-gradient(1300px 900px at 50% 118%, #5B7CFA1F, transparent 62%),
+    linear-gradient(178deg, var(--color-void) 0%, #0A0B0E 100%);
+  background-attachment: fixed;
+}
+
+body::before {
+  content: "";
+  position: fixed; inset: -40px; z-index: 0; pointer-events: none;
+  opacity: .30; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23g)' opacity='0.55'/></svg>");
+}
+
+/* Le plancher de qualite, sans l'annoncer. */
+:focus-visible { outline: 2px solid var(--color-gain-lit); outline-offset: 3px; border-radius: 12px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+@keyframes monte { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.monte { animation: monte 480ms var(--ease-smooth) both; }

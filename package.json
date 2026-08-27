@@ -11,6 +11,8 @@
   },
   "scripts": {
     "start": "node server/index.js",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "build": "npm --prefix web run build",
+    "test:ui": "node --test web/test/*.test.mjs"
   }
 }

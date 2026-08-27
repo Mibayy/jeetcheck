@@ -16,15 +16,13 @@ particular sale**, not against one peak for the whole position. A trader who
 exits in thirty steps made thirty decisions, and a sale made at the top carries
 no regret even when the token had been far higher an hour earlier.
 
-Two numbers, because only one of them flatters you:
+Three numbers, because any one of them alone flatters you:
 
 | Number | Question it answers |
 |---|---|
-| **What the exit cost you** | What those tokens would have been worth at the peaks that followed your sales |
-| **And today** | What they are worth right now, against what you actually took |
-
-The second one is the point. A tool that shows only the regret lies by
-omission.
+| **Fumbled** | What the tokens you sold would have been worth at the peaks that followed each sale |
+| **Jeet win** | What they are worth right now, against what you actually took. A tool that shows only the regret lies by omission |
+| **Still holding** | What the part you never sold is worth against its own peak. Shown beside the first, never inside it: holding is not a decision, and summing them would invent a sale that was never made |
 
 The position gets one verdict:
 
@@ -92,7 +90,9 @@ Cross-checked against pump.fun, an independent source: same peak to within
 ```bash
 npm install
 npm start          # listens on 127.0.0.1:8932
-npm test           # 54 tests, no network
+npm test           # 68 tests, no network
+npm run build      # compiles web/ into public/
+npm run test:ui    # the interface, in a real browser, API stubbed
 ```
 
 ### Credentials
@@ -137,7 +137,18 @@ server/
   peak.js        GeckoTerminal candles, used only by the scan
   pumpfun.js     pump.fun ATH: dates the lifetime peak for the check, and
                  supplies it outright for the scan
-public/
-  index.html     the check
-  scan.html      the older scan, unlinked
+web/
+  src/           the check UI: React, Tailwind, named tokens only
+    theme.css    the palette and type scale, as @theme tokens
+    components/  Carte (the shareable card), Courbe (the price line), Partage
+  test/          the UI suite, driven by a real browser against a stubbed API
+public/          BUILD OUTPUT, committed: `npm run build` writes it
+  scan.html      the older scan, unlinked and 404 in nginx
 ```
+
+The front end is a Vite build. `npm run build` compiles `web/` into `public/`,
+which is committed so a deploy stays `git pull && restart` with no toolchain on
+the server. Two suites: `npm test` for the server (pure, offline) and
+`npm run test:ui` for the interface, which drives a real browser because jsdom
+does not execute module scripts and because a CSP, a missing font or a canvas
+that refuses to render all leave the HTTP status at 200.

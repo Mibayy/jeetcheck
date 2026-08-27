@@ -244,6 +244,44 @@ export function chiffrerDetenu(balance, sommetDepuis, prixMaintenant) {
   };
 }
 
+// --- The line the card draws -----------------------------------------------
+//
+// The card shows the price from entry to now with the peak and every sale
+// marked on it, which is the one thing this tool knows that a screenshot of a
+// number does not. That series is hundreds of candles and has to cross the wire
+// small.
+//
+// It is NOT a slice. Taking every Nth point drops the peak silently, and the
+// peak is the whole subject: bucketing and keeping each bucket's MAXIMUM
+// preserves it by construction. Same reasoning as maximaApres crediting the
+// high rather than the close.
+
+export function echantillonner(serie, cible = 140) {
+  if (!Array.isArray(serie) || !serie.length) return [];
+  if (serie.length <= cible) return serie;
+
+  const tries = [...serie].sort((a, b) => a.t - b.t);
+  // Two slots are reserved for the ends, so `cible` is a real ceiling and not
+  // a suggestion: a caller sizing a canvas can rely on it.
+  const seaux = Math.max(1, cible - 2);
+  const taille = tries.length / seaux;
+  const sortie = [];
+  for (let i = 0; i < seaux; i++) {
+    const debut = Math.floor(i * taille);
+    const fin = Math.min(tries.length, Math.floor((i + 1) * taille));
+    if (fin <= debut) continue;
+    let haut = tries[debut];
+    for (let j = debut + 1; j < fin; j++) if (tries[j].high > haut.high) haut = tries[j];
+    sortie.push(haut);
+  }
+  // The ends anchor the line: without them it starts and stops wherever the
+  // bucket maxima happen to fall, and the shape no longer matches the window.
+  if (sortie[0].t !== tries[0].t) sortie.unshift(tries[0]);
+  const dernier = tries[tries.length - 1];
+  if (sortie[sortie.length - 1].t !== dernier.t) sortie.push(dernier);
+  return sortie;
+}
+
 // --- The verdict ----------------------------------------------------------
 //
 // One line, one answer. The order matters: a token that had already topped

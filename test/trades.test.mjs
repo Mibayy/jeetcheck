@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { normaliserTrades, agregerTrades, regretParVente, chiffrerDetenu } from "../server/positions.js";
+import { normaliserTrades, agregerTrades, regretParVente, chiffrerDetenu, echantillonner } from "../server/positions.js";
 import { maximaApres } from "../server/gmgnkline.js";
 import { refusDeguise } from "../server/gmgn.js";
 
@@ -242,4 +242,38 @@ test("an honest empty answer is not mistaken for a refusal", () => {
   ]) {
     assert.equal(refusDeguise(corps), null, `faux positif: ${JSON.stringify(corps)}`);
   }
+});
+
+// --- Downsampling a series for the card ------------------------------------
+//
+// The card draws the price line, so the series has to cross the wire small.
+// The one thing a naive downsample does is drop the peak: take every Nth point
+// and the single candle that matters is gone with no error anywhere. Bucketing
+// and keeping each bucket's MAX preserves it by construction, which is the
+// whole reason this is a function with tests rather than a slice().
+
+test("downsampling never loses the peak", () => {
+  const serie = Array.from({ length: 1000 }, (_, i) => ({ t: 1000 + i * 60, high: 1 }));
+  serie[437].high = 999;                       // the top, in an awkward place
+  const petit = echantillonner(serie, 50);
+  assert.ok(petit.length <= 50);
+  assert.equal(Math.max(...petit.map((c) => c.high)), 999);
+  assert.ok(petit.some((c) => c.t === serie[437].t), "and it keeps its date");
+});
+
+test("a series already smaller than the target comes back untouched", () => {
+  const serie = [{ t: 1, high: 2 }, { t: 2, high: 3 }];
+  assert.deepEqual(echantillonner(serie, 50), serie);
+});
+
+test("the ends are kept, so the line starts and finishes where the data does", () => {
+  const serie = Array.from({ length: 500 }, (_, i) => ({ t: 1000 + i * 60, high: 1 + (i % 9) }));
+  const petit = echantillonner(serie, 40);
+  assert.equal(petit[0].t, serie[0].t);
+  assert.equal(petit[petit.length - 1].t, serie[serie.length - 1].t);
+});
+
+test("an empty or absent series produces an empty line, not a crash", () => {
+  assert.deepEqual(echantillonner([], 40), []);
+  assert.deepEqual(echantillonner(null, 40), []);
 });

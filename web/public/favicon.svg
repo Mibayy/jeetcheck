@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="jeetcheck">
+  <!-- Palette de la page, convertie depuis les jetons OKLCH du :root.
+       Le dessin est le produit : une courbe qui monte, un point rouge sous le
+       sommet, la ou on a vendu. Lisible a 16 px parce qu'il n'y a que deux
+       formes et aucun detail sous 2 px. -->
+  <rect width="32" height="32" rx="8" fill="#14151d"/>
+  <path d="M5 24 L12 17 L18 20 L27 7" fill="none" stroke="#c3f53c"
+        stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="18" cy="20" r="3.4" fill="#ff4d5e"/>
+</svg>

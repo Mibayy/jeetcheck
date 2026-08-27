@@ -62,3 +62,14 @@ Deux zones, parce qu'une limite par IP ne protege pas d'un afflux reparti :
 ouvre un budget de 150 s et peut faire des centaines d'appels par requete ; la
 page ne l'appelle plus. Le code reste en place, il suffit de remplacer les deux
 `return 404` par un `proxy_pass` avec `limit_req zone=jeet_analyze burst=3`.
+
+## Le front est un build
+
+`npm run build` compile `web/` vers `public/`. Le resultat est **commite** : un
+deploiement reste `git pull && systemctl restart jeetcheck`, sans toolchain sur
+le serveur. Rebuild obligatoire apres toute modification de `web/`, sinon le
+site sert l'ancien bundle sans le moindre signe.
+
+La CSP a ete resserree en consequence : le bundle est un fichier externe, donc
+`script-src` n'a plus besoin de `'unsafe-inline'`. `style-src` le garde, React
+posant des attributs `style` sur les elements.
