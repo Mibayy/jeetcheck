@@ -3,7 +3,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { normaliserTrades, agregerTrades, regretParVente, chiffrerDetenu, echantillonner } from "../server/positions.js";
+import { normaliserTrades, agregerTrades, regretParVente, chiffrerDetenu, echantillonner,
+         accordAth } from "../server/positions.js";
 import { maximaApres } from "../server/gmgnkline.js";
 import { refusDeguise } from "../server/gmgn.js";
 
@@ -276,4 +277,50 @@ test("the ends are kept, so the line starts and finishes where the data does", (
 test("an empty or absent series produces an empty line, not a crash", () => {
   assert.deepEqual(echantillonner([], 40), []);
   assert.deepEqual(echantillonner(null, 40), []);
+});
+
+// --- Le pic, verifie par une seconde source --------------------------------
+//
+// `token/info` porte `ath_price`, qui sort de l'indexeur de GMGN et non de
+// l'endpoint de bougies. Les deux viennent de GMGN, donc leur accord ne prouve
+// pas la justesse. Mais leur DESACCORD prouve un probleme, et il vise
+// exactement le mode de panne le plus couteux de ce depot : une fenetre de
+// bougies tronquee rend un pic faux (16x trop bas sur SCAMCOIN, 11x sur
+// YOMOGI) pendant que l'ATH de l'indexeur reste juste.
+//
+// Mesure le 27/08/2026 sur les deux fixtures : ecart de 0,00 %, bit a bit.
+
+test("deux sources d'accord ne declenchent rien", () => {
+  assert.equal(accordAth(0.0024892626, 0.0024892626).suspect, false);
+  assert.equal(accordAth(100, 101).suspect, false, "un pour cent reste du bruit");
+});
+
+// Une serie tronquee rend un pic TROP BAS : c'est le sens qui compte.
+test("un pic tres inferieur a l'ATH est signale, avec le facteur", () => {
+  const r = accordAth(1, 16);
+  assert.equal(r.suspect, true);
+  assert.equal(Math.round(r.facteur), 16);
+  assert.match(r.sens, /trop bas/);
+});
+
+test("un pic superieur a l'ATH est signale aussi, mais nomme differemment", () => {
+  const r = accordAth(16, 1);
+  assert.equal(r.suspect, true);
+  assert.match(r.sens, /au-dessus/);
+});
+
+// Sans seconde source, on ne conclut pas : une absence n'est pas un accord.
+test("sans ATH de reference, rien n'est ni confirme ni suspect", () => {
+  for (const v of [null, undefined, 0, NaN, "x"]) {
+    const r = accordAth(1, v);
+    assert.equal(r.suspect, false);
+    assert.equal(r.verifie, false, String(v));
+  }
+  assert.equal(accordAth(null, 5).verifie, false);
+});
+
+test("un accord est marque comme verifie, ce qui n'est pas la meme chose que non suspect", () => {
+  const r = accordAth(100, 100);
+  assert.equal(r.verifie, true);
+  assert.equal(r.suspect, false);
 });

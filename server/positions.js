@@ -282,6 +282,39 @@ export function echantillonner(serie, cible = 140) {
   return sortie;
 }
 
+/**
+ * The peak, checked against a second source.
+ *
+ * `token/info` carries `ath_price`, which comes from GMGN's indexer and not
+ * from the candle endpoint. Both are GMGN, so their AGREEMENT proves nothing
+ * about correctness. Their DISAGREEMENT proves something is wrong, and it aims
+ * at the most expensive failure this repo has: a truncated candle window
+ * returns a peak that is far too low (16x on one token, 11x on another) while
+ * an indexer's all-time high stays right.
+ *
+ * `verifie` and `suspect` are separate on purpose. Not suspect is not the same
+ * as checked: with no second source there is nothing to conclude, and saying so
+ * is the whole point.
+ */
+export function accordAth(pic, ath, tolerance = 0.02) {
+  const a = num(ath);
+  const p = num(pic);
+  if (a === null || a <= 0 || p === null || p <= 0) {
+    return { verifie: false, suspect: false };
+  }
+  const ecart = Math.abs(a / p - 1);
+  if (ecart <= tolerance) return { verifie: true, suspect: false, ecart };
+  return {
+    verifie: true,
+    suspect: true,
+    ecart,
+    facteur: a > p ? a / p : p / a,
+    // Le sens compte : une serie tronquee rend un pic TROP BAS. L'autre sens
+    // est plus rare et signale autre chose, donc il se nomme autrement.
+    sens: a > p ? "le pic lu sur les bougies est trop bas" : "le pic est au-dessus de l'ATH connu",
+  };
+}
+
 // --- The verdict ----------------------------------------------------------
 //
 // One line, one answer. The order matters: a token that had already topped

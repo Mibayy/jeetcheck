@@ -23,7 +23,8 @@ import { getSolSeries, faireConvertisseur } from "./solprice.js";
 import { sommetsToken, maximaApres } from "./gmgnkline.js";
 import { athPumpFun, estPumpFun } from "./pumpfun.js";
 import {
-  normaliserTrades, agregerTrades, regretParVente, chiffrerDetenu, echantillonner, verdict,
+  normaliserTrades, agregerTrades, regretParVente, chiffrerDetenu, echantillonner,
+  accordAth, verdict,
   isValidSolanaAddress, nettoyerSymbole, num, round2,
 } from "./positions.js";
 
@@ -151,6 +152,15 @@ export async function checkToken(mint, wallets) {
   // and a tool that prices only what you sold flatters you by omission.
   const detenu = chiffrerDetenu(balance, sommets?.depuis, priceNow);
 
+  // Le pic, controle par une SECONDE source, pour zero appel de plus :
+  // `ath_price` sort de l'indexeur de GMGN et pas de l'endpoint de bougies, et
+  // il vise exactement le mode de panne le plus couteux de ce depot, une
+  // fenetre de bougies tronquee qui rend un pic bien trop bas.
+  const ath = accordAth(sommets?.vie?.prix, infoToken?.ath_price);
+  if (ath.suspect) {
+    console.error(`[check] ${mint} : pic suspect, ${ath.sens} (facteur ${ath.facteur.toFixed(1)})`);
+  }
+
   return {
     token: {
       address: mint,
@@ -227,6 +237,10 @@ export async function checkToken(mint, wallets) {
       // The largest hole in the series, in buckets. 1 means no hole. A series
       // can start on the right date and still omit the window: see trouMax.
       trou_max: sommets.trou_max ?? null,
+      // Verifie et suspect sont distincts : ne pas etre suspect n'est pas la
+      // meme chose qu'avoir ete controle.
+      ath_verifie: ath.verifie,
+      ath_suspect: ath.suspect,
       bougies: sommets.bougies,
     } : null,
     verdict: {
