@@ -2,6 +2,7 @@ import express from "express";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyzeWallet, isValidSolanaAddress } from "./analyze.js";
+import { checkToken } from "./check.js";
 import { readCache, readStale, writeCache } from "./cache.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -166,6 +167,42 @@ app.get("/api/logo", async (req, res) => {
   } catch (e) {
     console.error(`[api/logo] ${cle}: ${e.message}`);
     res.status(502).end();
+  }
+});
+
+// The targeted check: one token, up to five wallets. This is what the page
+// calls; /api/analyze stays for the whole-wallet scan, which no longer has a
+// screen in front of it.
+//
+// A short in-memory cache, because a check is a handful of calls and someone
+// comparing two tokens will come back to the first one. Not on disk: nothing
+// here is expensive enough to be worth surviving a restart.
+const memoCheck = new Map();
+const TTL_CHECK = 3 * 60 * 1000;
+
+app.get("/api/check", async (req, res) => {
+  const token = String(req.query.token ?? "").trim();
+  const wallets = String(req.query.wallets ?? "")
+    .split(",").map((w) => w.trim()).filter(Boolean);
+
+  // Sorted, so the same three wallets in another order hit the same entry.
+  const cle = `${token}|${[...new Set(wallets)].sort().join(",")}`;
+  const memo = memoCheck.get(cle);
+  if (memo && memo.expire > Date.now()) {
+    res.json({ ...memo.payload, cached: true, logo_proxy: relaisDisponible });
+    return;
+  }
+
+  try {
+    const payload = await checkToken(token, wallets);
+    if (memoCheck.size > 200) memoCheck.clear();
+    memoCheck.set(cle, { payload, expire: Date.now() + TTL_CHECK });
+    res.json({ ...payload, logo_proxy: relaisDisponible });
+  } catch (e) {
+    if (e.badRequest) { res.status(400).json({ error: e.message }); return; }
+    if (e.notFound) { res.status(404).json({ error: e.message, details: e.details }); return; }
+    console.error(`[api/check] ${token} failed:`, e);
+    res.status(502).json({ error: e.message || "could not fetch data right now, try again in a moment" });
   }
 });
 

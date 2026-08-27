@@ -1,54 +1,107 @@
 # Jeet Check
 
-See what you sold too early on Solana, in SOL, and whether you were right to sell.
+One coin, your wallets. See what that exit cost you against every peak that
+came after it, and whether selling was right anyway.
 
-Paste a wallet address. No wallet connection, no signature, no seed phrase, ever.
-Everything is read from public on-chain data through third-party APIs.
-
-> **Help wanted.** This works, but it is bottlenecked on free-tier rate limits.
-> If you know a better way to get historical peak prices for Solana memecoins at
-> scale, please open an issue. Details in [The hard problem](#the-hard-problem).
+Paste a token address and the wallets you traded it from. No wallet connection,
+no signature, no seed phrase, ever. Everything is read from public on-chain
+data through GMGN's API.
 
 ---
 
 ## What it computes
 
-For every closed position, it answers a question that only makes sense with a
-date attached: **what was the highest price this token reached after you bought
-in**, and how does that compare to what you actually walked away with.
+Every sale is repriced against **the highest price that came after that
+particular sale**, not against one peak for the whole position. A trader who
+exits in thirty steps made thirty decisions, and a sale made at the top carries
+no regret even when the token had been far higher an hour earlier.
 
-Positions are split four ways, and the split is the point:
+Two numbers, because only one of them flatters you:
 
-| Tab | Meaning |
+| Number | Question it answers |
 |---|---|
-| **Paperhand** | The peak came *after* you exited. You sold too early. |
-| **Roundtrip** | The peak happened *while you were still holding*. You rode it up and sold on the way back down. |
-| **Gained** | Positions where you actually made money. |
-| **Too late** | The token had already topped *before* you bought. You were late, not early. |
+| **What the exit cost you** | What those tokens would have been worth at the peaks that followed your sales |
+| **And today** | What they are worth right now, against what you actually took |
 
-That last one matters. Using a token's all-time high without checking its date
-inflates the number wildly: on one test wallet a single position claimed a
-22× larger "miss" than reality, because its record predated the purchase by two
-days. A high you missed by arriving late was never yours to take.
+The second one is the point. A tool that shows only the regret lies by
+omission.
 
-## What it looks like
+The position gets one verdict:
 
-One frame, no scrolling. A ranked strip of tokens drives the detail below.
+| Verdict | Meaning |
+|---|---|
+| **Sold too early** | The peak came after your last sale |
+| **Round trip** | You were holding when it topped, and sold under it |
+| **Late to the party** | The token had already topped before your first buy. That high was never yours to take |
+| **Still holding** | Nothing sold. There is no exit to judge |
+
+### Several wallets
+
+Someone running three wallets on the same coin has one position, not three.
+The trades merge into a single verdict, and the per-wallet split stays
+available underneath. Up to five wallets.
+
+## Where the numbers come from
+
+Everything is GMGN: trades, balance, token, candles. The only other call is the
+SOL/USD series, which GMGN does not publish.
+
+- **Trades** — `wallet_activity`, filtered by token. One call per wallet, with
+  the exact timestamp and price of every buy and sell.
+- **The peak** — `token_kline`, one or two calls. The first covers the token's
+  whole life at a resolution that fits under the API's ceiling; the second
+  refines the peak's date down to the minute.
+- **The current price** — `token/info`.
+
+### Three things that will bite you if you touch the candle code
+
+Each of these returns a wrong number rather than an error, and each cost a
+false conclusion before it was understood:
+
+1. **`from` and `to` are in milliseconds.** In seconds the API answers
+   HTTP 200, `"message":"success"`, and an empty list.
+2. **`limit` caps at 1000 candles, and truncation eats the START of the
+   window.** On one token at 15-minute resolution the series began after the
+   peak and reported a price 16× too low. `serieCouvre` exists for this: a
+   series that does not reach back to the date you asked for is not a smaller
+   answer, it is a wrong one.
+3. **GMGN filters on each bucket's start time.** Asking `from = creation` drops
+   the bucket that contains the creation, which for a memecoin is usually the
+   launch peak. On one token that alone hid a 21×. Always ask from one full
+   bucket earlier.
+
+Cross-checked against pump.fun, an independent source: same peak to within
+0.87% and 3 minutes.
+
+### And two about positions
+
+- `wallet_holdings` has **no per-token filter**. `token_address`, `token` and
+  `address` are all accepted and all ignored, so finding one token there means
+  paginating the whole wallet.
+- On a position still open, `start_holding_at` is the start of the **current
+  holding streak**, not the first buy. On a wallet that had traded the token
+  days earlier it returns a date after its own sales. This is why the check
+  reads trades instead.
+- `token.price` is **0 on every closed position**. GMGN only fills it in while
+  you still hold. A tool about closed positions reads zero every time, which
+  silently turns "what you sold is worth less today" into a tautology. The
+  current price comes from `token/info` for that reason.
 
 ## Running it
 
 ```bash
 npm install
-node server/index.js          # listens on 127.0.0.1:8932
+npm start          # listens on 127.0.0.1:8932
+npm test           # 54 tests, no network
 ```
 
 ### Credentials
 
-The only credential is a **GMGN OpenAPI key**, read from `~/.config/gmgn/.env`:
+The only credential is a **GMGN OpenAPI key**, read from `~/.config/gmgn/`:
 
 ```
-GMGN_API_KEY=<your key>
-GMGN_PRIVATE_KEY=<PEM Ed25519 private key, for signed endpoints>
+~/.config/gmgn/.env          GMGN_API_KEY=<your key>
+~/.config/gmgn/keypair.pem   Ed25519 private key, for signed endpoints
 ```
 
 Get one with [`gmgn-cli`](https://www.npmjs.com/package/gmgn-cli):
@@ -58,105 +111,32 @@ npx gmgn-cli config              # prints a link to create the key
 npx gmgn-cli config --apply <key>
 ```
 
-Nothing else needs a key. Everything in this repository is safe to publish:
-no credential is committed, and the server only ever reads them from outside
-the repo.
+Hammering the API outside the client's shared pacing gate earns a
+`RATE_LIMIT_BANNED` on the whole IP, and a banned reply is an **empty array
+inside an HTTP 200**. Read as data it looks exactly like "this wallet never
+traded this token". Always go through `server/gmgn.js`.
 
-> If your host cannot reach `openapi.gmgn.ai` over IPv4, it is not your code.
-> Cloudflare blocks some datacenter ranges for that zone while IPv6 works fine.
-> `gmgn-cli` also hardcodes `family: 4`, which produces a misleading
-> `ConnectTimeoutError`.
+## The whole-wallet scan
 
-### Deployment
+`analyze.js` and `public/scan.html` still hold the older feature: paste one
+wallet, get every closed position split four ways. It is not reachable from the
+page and `/api/analyze` is not called by it. It carries the `token.price = 0`
+problem described above, so its "worth less today" figures should not be
+trusted as they stand.
 
-See [`deploy/`](deploy/) for a systemd unit and an nginx site with rate limits.
-Two settings there are not cosmetic: a 300 s read timeout, because a cold
-analysis of a large wallet takes over a minute, and a hard cap of 6 analyses per
-minute per IP, because every cold analysis spends a shared third-party quota.
+## Layout
 
-## Data sources, and why each one
-
-| Source | Used for | Key needed |
-|---|---|---|
-| **GMGN** `wallet_holdings` | Positions: amounts bought and sold, proceeds, realized PnL, entry and exit timestamps, token metadata, current price | yes |
-| **pump.fun** `/coins/{mint}` | All-time high **with its timestamp**, which is what makes the four-way split possible | no |
-| **GeckoTerminal** OHLCV | Peak since entry, for tokens whose all-time high predates the purchase, and for non-pump.fun memecoins | no |
-| **Binance** (Coinbase fallback) | Daily SOL/USD close, three years of history | no |
-
-### Everything upstream is in USD
-
-GMGN returns dollars everywhere, including its candles. Amounts are converted to
-SOL at **the SOL/USD close of the day each position was exited**, never today's
-rate, which would misprice an old sale. Cross-checked before being trusted:
-Binance against Coinbase differed by at most 0.16 % over six common days, and
-against the rate implied by GMGN's own trades by 1.12 %.
-
-### Only memecoins
-
-LSTs, wrapped assets and stablecoins are excluded. Not out of purism: that is
-exactly where the upstream `ath_price` is broken. One wallet reported JitoSOL at
-$108,107,571 against a real $125, and four such rows accounted for **99.95 %** of
-that wallet's total. Three filters, in order: known non-memecoin families first,
-then the launchpad field, then a plausibility guard on the high itself.
-
-## The hard problem
-
-Resolving a peak costs one API call per token. A single active trader can hold
-**2000 positions**, and free tiers do not survive that.
-
-Measured, not assumed:
-
-- **GeckoTerminal** accepts 5 to 7 calls per window *regardless of spacing*.
-  2.5 s, 4 s and 6 s between calls all give the same result. It is a hard budget,
-  not a rate, so slowing down does not help.
-- **pump.fun** tolerates a low sustained rate but not volume. A 40-call probe
-  showed 70 req/s with zero refusals; 1500 calls at that pace returned **1014
-  refusals** and then nothing at all for several minutes. A short probe does not
-  measure a quota that triggers at the thousand.
-
-What the code does about it: a permanent on-disk store of resolved peaks (a dead
-memecoin's high is final, so it is never re-fetched), a global time budget so a
-request degrades instead of hanging, deferred background completion for the
-remainder, and a short cache TTL for degraded results so one bad minute does not
-poison a wallet for hours.
-
-**What would actually solve it**, and where help is welcome:
-
-1. A bulk source for Solana memecoin price history. A store of *suffix maxima*
-   (the running high from each instant, monotonically decreasing, so only its
-   breakpoints need storing) is about **30 bytes per token**: roughly 36 MB for
-   tokens that graduated, under 500 MB for everything ever traded. The size is
-   not the problem; the initial ingest is. Dune, BigQuery and Bitquery all
-   require an account.
-2. A cheaper way to get an all-time high **with its timestamp**. The timestamp is
-   the whole point; a high without a date cannot be classified.
-3. Anything that makes the peak lookup unnecessary for the long tail.
-
-## Known limitations
-
-- On very large wallets, totals cover every sold position, but peaks are resolved
-  in waves. The interface says how many, and how many are still pending.
-- A peak is an instantaneous spike. On an illiquid token nobody unloads a full
-  bag at that price, so treat it as a ceiling, not as money you would really have
-  touched. That is why there is more than one tab.
-- Token logos are hosted on `gmgn.ai`, which some networks cannot reach. The
-  server probes this at startup and the page either proxies them or loads them
-  directly. Initials always sit underneath, because an image that hangs never
-  fires `onerror`.
-- Non-pump.fun memecoins depend on candles, where the budget is tightest.
-
-## A note on safety
-
-Sites offering the same analysis but asking you to **connect your wallet** should
-be treated as hostile. Reading public on-chain history requires an address and
-nothing else. One such site, examined for comparison, loaded transaction-signing
-libraries, wrapped Phantom, Solflare and Jupiter, exfiltrated encrypted payloads
-to a domain named to look like a wallet-adapter CDN, and pinged its server the
-moment the page loaded. Its hardcoded destination address had zero purchases and
-six sales.
-
-This tool never requests a signature, and never will.
-
-## License
-
-MIT
+```
+server/
+  check.js       the targeted check: one token, up to five wallets
+  positions.js   pure arithmetic, shared: trades, aggregation, regret, verdict
+  gmgnkline.js   the peak, from candles, with the coverage guard
+  gmgn.js        GMGN client: signing, pacing, the shared ban gate
+  solprice.js    SOL/USD by date
+  analyze.js     the older whole-wallet scan
+  peak.js        GeckoTerminal candles, used only by the scan
+  pumpfun.js     pump.fun ATH, used only by the scan
+public/
+  index.html     the check
+  scan.html      the older scan, unlinked
+```

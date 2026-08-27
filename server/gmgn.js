@@ -254,10 +254,19 @@ export async function getAllWalletHoldings(walletAddress) {
 /**
  * Fetches info for a token (ath_price, current price, symbol, ...).
  */
-export async function getTokenKline(mintAddress, resolution, fromUnix, toUnix) {
-  const params = { chain: "sol", address: mintAddress, resolution };
-  if (fromUnix) params.from = fromUnix;
-  if (toUnix) params.to = toUnix;
+/**
+ * Candles for a token.
+ *
+ * `from` and `to` are in MILLISECONDS. Measured 2026-08-25: in seconds this
+ * endpoint answers HTTP 200 with `"message":"success"` and an EMPTY list, so
+ * the mistake costs a wrong number rather than an error. `limit` goes past the
+ * default 100 and caps at 1000, truncating the START of the window when the
+ * span needs more than that. gmgnkline.js is what guards against it.
+ */
+export async function getTokenKline(mintAddress, resolution, fromMs, toMs, limit = 1000) {
+  const params = { chain: "sol", address: mintAddress, resolution, limit };
+  if (fromMs) params.from = Math.floor(fromMs);
+  if (toMs) params.to = Math.floor(toMs);
   const data = await gmgnRequestWithRetry("/v1/market/token_kline", params, "exist");
   return (data?.data ?? data)?.list ?? [];
 }
@@ -269,6 +278,77 @@ export async function getTokenInfo(mintAddress) {
     "exist"
   );
   return data?.data ?? data;
+}
+
+/**
+ * Every trade a wallet made on ONE token, newest first.
+ *
+ * This is the endpoint the targeted check is built on, and it replaces
+ * `wallet_holdings` there entirely. Two reasons, both measured 2026-08-25:
+ *
+ *   - `wallet_holdings` has no per-token filter (`token_address`, `token` and
+ *     `address` are all accepted and all ignored), so finding one token means
+ *     paginating the whole wallet: up to forty calls. This is one call.
+ *   - On a position still open, `wallet_holdings.start_holding_at` is the
+ *     start of the CURRENT holding streak, not the first buy. On a wallet that
+ *     had traded the token days earlier it returned a date AFTER its own
+ *     sales, which put the "reachable peak" window in the wrong place. Trades
+ *     carry their own timestamps and cannot drift like that.
+ *
+ * A word of caution paid for on the spot: hammering this endpoint outside the
+ * shared gate earns a `RATE_LIMIT_BANNED` on the whole IP, and a banned reply
+ * is an EMPTY `activities` array inside an HTTP 200. Read as data, that looks
+ * exactly like "this wallet never traded this token" — it cost a false
+ * conclusion about a retention window that does not exist. Hence the retry
+ * path here, and hence callers must never take an empty list as proof of
+ * absence when an error was raised.
+ */
+export async function getWalletActivity(walletAddress, tokenAddress) {
+  const all = [];
+  let cursor = "";
+  const MAX_PAGES = 20;
+
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const params = {
+      chain: "sol",
+      wallet_address: walletAddress,
+      token_address: tokenAddress,
+      limit: 100,
+    };
+    if (cursor) params.cursor = cursor;
+
+    if (budgetEpuise()) {
+      console.error(`[gmgn] budget exhausted during activity pagination, ${all.length} events`);
+      break;
+    }
+
+    const data = await gmgnRequestWithRetry("/v1/user/wallet_activity", params, "signed");
+    const payload = data?.data ?? data;
+    all.push(...(payload?.activities ?? []));
+
+    const next = payload?.next;
+    if (!next) break;
+    cursor = next;
+  }
+
+  return all;
+}
+
+/**
+ * What a wallet still holds of one token. One call, exact, and the only way to
+ * tell "sold everything" from "sold most of it": transfers in and out never
+ * appear as trades, so a balance derived from buys minus sells would drift.
+ */
+export async function getWalletTokenBalance(walletAddress, tokenAddress) {
+  const data = await gmgnRequestWithRetry(
+    "/v1/user/wallet_token_balance",
+    { chain: "sol", wallet_address: walletAddress, token_address: tokenAddress },
+    "signed"
+  );
+  const liste = (data?.data ?? data)?.balances ?? [];
+  const ligne = liste.find((b) => b?.token_address === tokenAddress) ?? liste[0];
+  const brut = Number(ligne?.balance);
+  return Number.isFinite(brut) ? brut : 0;
 }
 
 /**

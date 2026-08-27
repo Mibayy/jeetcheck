@@ -2,101 +2,18 @@
 // what the position would have been worth at its ATH (and vs. now).
 import { getAllWalletHoldings, getTokenInfo, mapWithConcurrency,
          ouvrirBudget, budgetEpuise } from "./gmgn.js";
+// Shared with the targeted check: the same arithmetic has to give the same
+// answer in both, so it lives in one place.
+import { isValidSolanaAddress, num, median, round2,
+         nettoyerSymbole, horodatage, classer } from "./positions.js";
 import { getSolSeries, faireConvertisseur } from "./solprice.js";
 import { sommetDepuis, sourceCoupee } from "./peak.js";
 import { athPumpFun, estPumpFun } from "./pumpfun.js";
 
-const BASE58_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
-export function isValidSolanaAddress(addr) {
-  return typeof addr === "string" && BASE58_RE.test(addr);
-}
-
-function num(v) {
-  if (v === null || v === undefined || v === "") return null;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-}
-
-function median(values) {
-  if (values.length === 0) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  if (sorted.length % 2 === 0) {
-    return (sorted[mid - 1] + sorted[mid]) / 2;
-  }
-  return sorted[mid];
-}
-
-function round2(n) {
-  if (n === null || n === undefined || !Number.isFinite(n)) return n;
-  return Math.round(n * 100) / 100;
-}
-
-
-// --- What counts as a memecoin -------------------------------------------
-//
-// GMGN returns a flatly wrong `ath_price` for established tokens: JitoSOL at
-// $108,107,571 when it's worth $125, WETH at $4,671,114, PENGU at $280 for a
-// real $0.0095. On a wallet with 149 positions, FOUR lines of this kind made
-// up 99.95% of the total "paperhand" ($213M instead of $110k).
-//
-// Three filters, because none is sufficient alone:
-//   1. Non-empty `launchpad` (pump, ray_launchpad...) => certain memecoin.
-//   2. Otherwise, known families of non-memecoins (LST, wrapped, stables,
-//      infra tokens). This is where JitoSOL, WETH, sUSD, RAY fall.
-//   3. Otherwise we include it (WEN and BONK have an empty launchpad and are
-//      nonetheless memecoins), but a plausibility guard on the ATH still
-//      excludes the line if the ATH exceeds 1000x the current price. This is
-//      the filter that catches PENGU.
-
-const NON_MEME_EXACTS = new Set([
-  "SOL","WSOL","USDC","USDT","USDS","PYUSD","FDUSD","EURC","UXD","USDE",
-  "RAY","JUP","JTO","ORCA","PYTH","TNSR","DRIFT","KMNO","MNDE","SRM","INF",
-  "WETH","WBTC","ZBTC","CBBTC","WBNB","LST","JLP",
-]);
-
-// mSOL, bSOL, JupSOL, stSOL, vSOL, sSOL, heliusSOL, strongSOL, NEW-sSOL...
-const LST_RE   = /SOL$/i;
-const STABLE_RE = /USD|EUR/i;
-const RATIO_ATH_INCROYABLE = 1000;
-
-// The on-chain symbol is a fixed-size byte array: GMGN returns it raw, so
-// "proSOL" followed by four NULs, or "INF" followed by a NUL. `.trim()`
-// removes neither NULs nor zero-width characters, so these LSTs were slipping
-// through the non-memecoin filter.
-export function nettoyerSymbole(v) {
-  return String(v ?? "")
-    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g, "")
-    .trim();
-}
-
-function classer(token, athPrice, priceNow) {
-  const sym = nettoyerSymbole(token?.symbol);
-  const launchpad = String(token?.launchpad ?? "").trim();
-  const up = sym.toUpperCase();
-
-  // Families first, launchpad second: the other way around, INF and proSOL
-  // (both LSTs) were getting through because they carry a non-empty launchpad.
-  if (NON_MEME_EXACTS.has(up)) return { memecoin: false, motif: "non_memecoin" };
-  if (up !== "SOL" && LST_RE.test(up) && up.length > 3) return { memecoin: false, motif: "non_memecoin" };
-  if (STABLE_RE.test(up)) return { memecoin: false, motif: "non_memecoin" };
-
-  if (launchpad !== "") return { memecoin: true, motif: null };
-
-  if (athPrice !== null && priceNow !== null && priceNow > 0
-      && athPrice / priceNow > RATIO_ATH_INCROYABLE) {
-    return { memecoin: false, motif: "ath_invraisemblable" };
-  }
-  return { memecoin: true, motif: null };
-}
-
-// GMGN returns 0 when it doesn't have the date, not null: an unfiltered 0
-// collapsed the median holding time to 0 s and made first_trade = 1970.
-function horodatage(v) {
-  const n = num(v);
-  return n !== null && n > 0 ? n : null;
-}
+// Re-exported so the scan's entry point keeps one import: the definition is
+// in positions.js.
+export { isValidSolanaAddress };
 
 // --- Deferred completion -----------------------------------------------------
 //

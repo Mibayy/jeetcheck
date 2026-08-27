@@ -1,0 +1,106 @@
+{
+    "token": {
+        "address": "HDXeZq5Komdc4gcPbLgmrZFcsbupoteZkf1cPitRpump",
+        "symbol": "NANDRY",
+        "name": "NANDRY",
+        "logo": "https://gmgn.ai/external-res/b307475768c40880b7d64d1ba310abbe_v2.webp",
+        "launchpad": "pump",
+        "creation": 1787328920,
+        "price_now": 2.2566542e-05,
+        "prix_connu": true
+    },
+    "wallets": {
+        "demandes": [
+            "y3TndRqMmtwjTCEzJAEhMit7iH6Z9zLk1XxURUCde3es",
+            "dQHoEEG67YcHvvrn3BvzDEoqB45yxCXah3S9WoawZHg9"
+        ],
+        "avec_position": [
+            "dQHoEEG67YcHvvrn3BvzDEoqB45yxCXah3S9WoawZHg9",
+            "y3TndRqMmtwjTCEzJAEhMit7iH6Z9zLk1XxURUCde3es"
+        ],
+        "sans_position": [],
+        "en_erreur": []
+    },
+    "position": {
+        "bought_amount": 42559880.989914,
+        "bought_cost": 467.01,
+        "bought_sol": 4.9165,
+        "sold_amount": 31982101.548987,
+        "sold_income": 1468.59,
+        "sold_sol": 15.955,
+        "realized_profit": 1117.66,
+        "realized_profit_sol": 12.2604,
+        "total_buys": 5,
+        "total_sells": 10,
+        "balance": 10277779.440927,
+        "encore_detenu": true,
+        "valeur_detenue": 231.93,
+        "entree": 1787328995,
+        "sortie": 1787440255,
+        "duree_secondes": 111260,
+        "par_wallet": [
+            {
+                "wallet": "dQHoEEG67YcHvvrn3BvzDEoqB45yxCXah3S9WoawZHg9",
+                "achats": 3,
+                "ventes": 9,
+                "bought_amount": 41199159.365368,
+                "sold_amount": 30621379.924441002,
+                "bought_cost": 439.09,
+                "sold_income": 1428.95,
+                "bought_sol": 4.6201,
+                "sold_sol": 15.534,
+                "entree": 1787328995,
+                "sortie": 1787440255,
+                "balance": 10277779.440927
+            },
+            {
+                "wallet": "y3TndRqMmtwjTCEzJAEhMit7iH6Z9zLk1XxURUCde3es",
+                "achats": 2,
+                "ventes": 1,
+                "bought_amount": 1360721.624546,
+                "sold_amount": 1360721.624546,
+                "bought_cost": 27.92,
+                "sold_income": 39.65,
+                "bought_sol": 0.2964,
+                "sold_sol": 0.421,
+                "entree": 1787353192,
+                "sortie": 1787364644,
+                "balance": 0
+            }
+        ]
+    },
+    "sommet": {
+        "prix": 0.00014119929,
+        "quand": 1787336160,
+        "prix_vie": 0.00014119929,
+        "quand_vie": 1787336100,
+        "resolution": "15m",
+        "precision_secondes": 60,
+        "couverture_complete": true,
+        "bougies": 279
+    },
+    "verdict": {
+        "categorie": "roundtrip",
+        "valeur_au_sommet": 3132.07,
+        "regret": 1663.48,
+        "multiple": 2.13,
+        "retard_multiple": null,
+        "precision_secondes": 60,
+        "valeur_au_sommet_sol": 33.3838,
+        "regret_sol": 17.7305,
+        "valeur_aujourdhui": 721.73,
+        "valeur_aujourdhui_sol": 7.36,
+        "ecart_aujourdhui": -746.87,
+        "ecart_aujourdhui_sol": -7.6164,
+        "eu_raison": true,
+        "ventes_chiffrees": 10,
+        "ventes_sans_sommet": 0,
+        "ventes_au_dessus_des_bougies": 1
+    },
+    "sol_rate": 93.82,
+    "sol_rate_now": 98.06,
+    "generated_at": 1787671276,
+    "partiel": false,
+    "cached": true,
+    "logo_proxy": false
+}

@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>JEET CHECK — how much you sold too early</title>
-<meta name="description" content="Paste a Solana wallet. See what you paperhanded, what you round-tripped, and what you actually gained. In SOL.">
+<title>JEET CHECK — did you sell that one too early?</title>
+<meta name="description" content="One token, your wallets. See what that exit cost you against every peak that came after it, and whether selling was right.">
 <meta property="og:title" content="JEET CHECK">
-<meta property="og:description" content="What you sold too early, and whether you were right.">
+<meta property="og:description" content="One token. Your wallets. What that exit really cost you.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -167,6 +167,61 @@ form{margin-top:clamp(16px,3.4vh,28px);display:flex;gap:10px;flex-wrap:wrap}
 .note{margin-top:9px;font-size:10.5px;line-height:1.6;color:var(--bone-4)}
 .note .warn{color:var(--hot)}
 .empty{padding:clamp(24px,7vh,58px) 10px;text-align:center;color:var(--bone-3);font-size:13px;line-height:1.8}
+/* --- the targeted check ------------------------------------------------- */
+.rows{display:flex;flex-direction:column;gap:9px;margin-top:clamp(16px,3.4vh,28px)}
+.row{display:flex;gap:9px;align-items:stretch}
+.row .field{flex:1 1 auto}
+.row .field.tok:focus-within{border-color:var(--ice);box-shadow:0 0 0 4px var(--ice-wash)}
+.drop{flex:0 0 auto;width:52px;cursor:pointer;border:2px solid var(--edge-2);border-radius:16px;
+  background:var(--void-2);color:var(--bone-4);font-family:var(--mono);font-size:17px;line-height:1;
+  transition:transform 260ms var(--pop),border-color 260ms var(--smooth),color 260ms var(--smooth)}
+.drop:hover{transform:translateY(-2px);border-color:var(--hot);color:var(--hot)}
+.add{align-self:flex-start;cursor:pointer;border:2px dashed var(--edge);border-radius:13px;background:transparent;
+  color:var(--bone-3);font-family:var(--mono);font-weight:700;font-size:11px;letter-spacing:.06em;
+  text-transform:uppercase;padding:10px 14px;
+  transition:transform 260ms var(--pop),border-color 260ms var(--smooth),color 260ms var(--smooth)}
+.add:hover{transform:translateY(-2px);border-color:var(--acid);color:var(--acid)}
+.add[disabled]{opacity:.4;cursor:not-allowed;transform:none}
+.launch{margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+.head{display:flex;align-items:center;gap:11px;padding:13px 15px;border-bottom:2px solid var(--edge-2);
+  background:oklch(0.152 0.018 268)}
+.head .who{min-width:0;flex:1 1 auto}
+.head .s{font-family:var(--fat);font-size:15px;line-height:1.2}
+.head .n{font-size:10.5px;color:var(--bone-3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{flex:0 0 auto;font-family:var(--mono);font-weight:700;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  padding:7px 11px;border-radius:999px;border:2px solid var(--tone-deep);color:var(--tone);background:var(--tone-wash)}
+
+.versus{display:grid;grid-template-columns:1fr;gap:9px;margin-top:clamp(11px,2.2vh,18px)}
+@media(min-width:620px){.versus{grid-template-columns:1fr 1fr}}
+.side{border:2px solid var(--edge-2);border-radius:18px;padding:clamp(12px,2vh,17px) 15px;
+  background:linear-gradient(168deg,var(--void-3),var(--void-2))}
+.side .k{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-3)}
+.side .v{font-family:var(--fat);font-size:clamp(22px,4.6vw,34px);line-height:1.05;letter-spacing:-.026em;
+  margin-top:7px;font-variant-numeric:tabular-nums}
+.side .v em{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--bone-3);font-weight:400;margin-left:7px;letter-spacing:0}
+.side .why{font-size:11px;line-height:1.65;color:var(--bone-3);margin-top:8px}
+.side.regret{border-color:var(--hot-deep);background:linear-gradient(168deg,var(--hot-wash),var(--void-2))}
+.side.regret .v{color:var(--hot)}
+.side.right{border-color:oklch(0.50 0.15 128);background:linear-gradient(168deg,var(--acid-wash),var(--void-2))}
+.side.right .v{color:var(--acid)}
+.side.cold{border-color:var(--ice-deep);background:linear-gradient(168deg,var(--ice-wash),var(--void-2))}
+.side.cold .v{color:var(--ice)}
+
+details.split{margin-top:clamp(11px,2.2vh,18px);border:2px solid var(--edge-2);border-radius:16px;overflow:hidden}
+details.split summary{cursor:pointer;list-style:none;padding:12px 14px;font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--bone-2);background:oklch(0.162 0.018 268);
+  display:flex;align-items:center;justify-content:space-between;gap:9px;
+  transition:color 240ms var(--smooth)}
+details.split summary::-webkit-details-marker{display:none}
+details.split summary:hover{color:var(--bone)}
+details.split summary .chev{transition:transform 320ms var(--pop);color:var(--bone-4)}
+details.split[open] summary .chev{transform:rotate(90deg)}
+.wrow{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  padding:11px 14px;border-top:2px solid var(--edge-2);font-size:11.5px}
+.wrow .a{color:var(--bone-2)}
+.wrow .b{color:var(--bone-3);font-variant-numeric:tabular-nums}
+.wrow .b b{color:var(--bone);font-weight:700}
 </style>
 </head>
 <body>
@@ -177,13 +232,23 @@ form{margin-top:clamp(16px,3.4vh,28px);display:flex;gap:10px;flex-wrap:wrap}
       <div class="glyph"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 14 L9 4 L14 12 L20 6" stroke="oklch(0.886 0.212 122)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="4" r="2.2" fill="oklch(0.886 0.212 122)"/></svg></div>
       <div class="txt">JEET<i>CHECK</i><span class="beta">BETA</span></div>
     </div>
-    <h1>You <span class="h">jeeted</span>.<br>The real question: <span class="a">were you wrong?</span></h1>
-    <p class="lede">Paste a Solana wallet. We reprice every position you closed at the token's highest point after you bought in, and split it three ways: what you paperhanded, what you round-tripped, and what you actually kept. All in SOL.</p>
+    <h1>One coin.<br>Did you sell it <span class="h">too early</span>?</h1>
+    <p class="lede">Paste a token and the wallets you traded it from. Every sale gets repriced against the highest point that came after <em>that</em> sale, and then against what it is worth right now. Two numbers, because only one of them flatters you.</p>
+
     <form id="form" autocomplete="off">
-      <div class="field"><input id="wallet" placeholder="paste your solana wallet" spellcheck="false"></div>
-      <button class="go" id="go" type="submit">Check</button>
+      <div class="rows">
+        <div class="row">
+          <div class="field tok"><input id="token" placeholder="token address (mint)" spellcheck="false" autocapitalize="off"></div>
+        </div>
+        <div class="rows" id="wallets"></div>
+        <button class="add" id="add" type="button">+ another wallet</button>
+      </div>
+      <div class="launch">
+        <button class="go" id="go" type="submit">Check</button>
+        <span class="hint" style="margin:0">Read only. No signature, no wallet connection, no seed phrase. Ever.</span>
+      </div>
     </form>
-    <p class="hint">Read only. No signature, no wallet connection, no seed phrase. Ever.</p>
+
     <div class="pulse" id="pulse"></div>
     <div class="steps" id="steps"></div>
     <div id="err" class="err" style="display:none"></div>
@@ -191,310 +256,268 @@ form{margin-top:clamp(16px,3.4vh,28px);display:flex;gap:10px;flex-wrap:wrap}
 
   <section class="screen" id="s2">
     <div class="frame">
-      <div class="tabs" role="tablist">
-        <button class="tab t-a" role="tab" aria-selected="true"  data-k="paper" type="button">Paperhand<small id="c-paper"></small></button>
-        <button class="tab t-b" role="tab" aria-selected="false" data-k="round" type="button">Roundtrip<small id="c-round"></small></button>
-        <button class="tab t-c" role="tab" aria-selected="false" data-k="gain"  type="button">Gained<small id="c-gain"></small></button>
-        <button class="tab t-d" role="tab" aria-selected="false" data-k="late"  type="button">Too late<small id="c-late"></small></button>
+      <div class="head">
+        <div class="av" id="r-av"><b id="r-ini"></b></div>
+        <div class="who">
+          <div class="s" id="r-sym"></div>
+          <div class="n" id="r-name"></div>
+        </div>
+        <div class="badge" id="r-badge"></div>
       </div>
       <div class="body">
-        <div class="strip" id="strip"></div>
-        <div id="detail"></div>
-        <div class="foot">
-          <div class="wal">
-            <div class="k">Wallet</div>
-            <div class="v" id="f-wallet"></div>
+        <div class="versus">
+          <div class="side regret" id="r-left">
+            <div class="k" id="r-left-k">What the exit cost you</div>
+            <div class="v" id="r-left-v"></div>
+            <div class="why" id="r-left-why"></div>
           </div>
-          <div class="acts">
-            <button class="ghost" id="again" type="button">New wallet</button>
-            <button class="ghost solid" id="share" type="button">Share</button>
+          <div class="side right" id="r-right">
+            <div class="k" id="r-right-k">And today</div>
+            <div class="v" id="r-right-v"></div>
+            <div class="why" id="r-right-why"></div>
           </div>
         </div>
-        <div class="note" id="note"></div>
+
+        <div class="grid">
+          <div class="cell"><div class="k">Put in</div><div class="v" id="r-in"></div></div>
+          <div class="cell"><div class="k">Took out</div><div class="v" id="r-out"></div></div>
+          <div class="cell hi"><div class="k">Net</div><div class="v" id="r-net"></div></div>
+          <div class="cell"><div class="k">Peak after entry</div><div class="v" id="r-peak"></div></div>
+        </div>
+
+        <details class="split" id="r-split">
+          <summary><span id="r-split-k"></span><span class="chev">›</span></summary>
+          <div id="r-rows"></div>
+        </details>
+
+        <div class="foot">
+          <div class="wal">
+            <div class="k">Window</div>
+            <div class="v" id="r-window"></div>
+          </div>
+          <div class="acts">
+            <button class="ghost" id="again" type="button">New check</button>
+            <button class="ghost solid" id="share" type="button">Copy</button>
+          </div>
+        </div>
+        <div class="note" id="r-note"></div>
       </div>
     </div>
   </section>
 
 </div>
-
 <script>
-const $ = s => document.querySelector(s);
+const $ = (id) => document.getElementById(id);
+const MAX = 5;
 
-const sol = n => {
+/* --- wallet rows --------------------------------------------------------- */
+function ligneWallet(premiere) {
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.innerHTML = '<div class="field"><input class="w" placeholder="'
+    + (premiere ? 'your solana wallet' : 'another wallet trading the same coin')
+    + '" spellcheck="false" autocapitalize="off"></div>';
+  if (!premiere) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'drop'; b.textContent = '×';
+    b.setAttribute('aria-label', 'remove this wallet');
+    b.onclick = () => { row.remove(); majAjout(); };
+    row.appendChild(b);
+  }
+  return row;
+}
+function majAjout() {
+  const n = $('wallets').children.length;
+  $('add').disabled = n >= MAX;
+  $('add').textContent = n >= MAX ? 'five wallets is the limit' : '+ another wallet';
+}
+$('wallets').appendChild(ligneWallet(true));
+majAjout();
+$('add').onclick = () => {
+  if ($('wallets').children.length >= MAX) return;
+  const r = ligneWallet(false);
+  $('wallets').appendChild(r);
+  r.querySelector('input').focus();
+  majAjout();
+};
+
+/* --- formatting ---------------------------------------------------------- */
+const sol = (n, signe) => {
   if (n === null || n === undefined || !isFinite(n)) return '—';
   const a = Math.abs(n);
-  if (a >= 100000) return Math.round(n).toLocaleString('en-US');
-  if (a >= 1000) return n.toLocaleString('en-US', {maximumFractionDigits:0});
-  if (a >= 1) return n.toFixed(2);
-  return n.toFixed(3);
+  const d = a >= 100 ? 1 : a >= 1 ? 2 : 4;
+  return (signe && n > 0 ? '+' : n < 0 ? '−' : '') + a.toFixed(d);
 };
-const usd = n => {
-  if (n === null || n === undefined || !isFinite(n)) return '';
-  const a = Math.abs(n);
-  if (a >= 1e6) return '$' + (n/1e6).toFixed(2).replace(/\.?0+$/,'') + 'M';
-  if (a >= 1000) return '$' + Math.round(n).toLocaleString('en-US');
-  return '$' + n.toFixed(2);
+const usd = (n) => (n === null || n === undefined || !isFinite(n)) ? '—'
+  : '$' + Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: Math.abs(n) < 10 ? 2 : 0 });
+const jour = (u) => u ? new Date(u * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }) : '—';
+const heure = (u) => u ? new Date(u * 1000).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+const duree = (s) => {
+  if (!s || s < 0) return '—';
+  if (s < 3600) return Math.round(s / 60) + ' min';
+  if (s < 172800) return Math.round(s / 3600) + ' h';
+  return Math.round(s / 86400) + ' days';
 };
-const qty = n => {
-  if (!isFinite(n)) return '—';
-  if (n >= 1e9) return (n/1e9).toFixed(2) + 'B';
-  if (n >= 1e6) return (n/1e6).toFixed(2) + 'M';
-  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
-  return n.toFixed(2);
-};
-const short = a => a ? (a.slice(0,4) + '…' + a.slice(-4)) : '—';
-const dur = s => {
-  if (s === null || s === undefined) return '—';
-  if (s < 60) return s + ' sec';
-  if (s < 3600) return Math.round(s/60) + ' min';
-  if (s < 86400) return (s/3600).toFixed(1).replace('.0','') + ' hrs';
-  return (s/86400).toFixed(1).replace('.0','') + ' days';
-};
-const pic = u => {
-  if (!u) return '';
-  return (DATA && DATA.logo_proxy) ? ('/api/logo?u=' + encodeURIComponent(u)) : u;
-};
+const court = (a) => a ? a.slice(0, 4) + '…' + a.slice(-4) : '';
+const precision = (s) => s <= 60 ? 'to the minute' : s <= 300 ? 'to five minutes'
+  : s <= 3600 ? 'to the hour' : s <= 14400 ? 'to four hours' : 'to the day';
 
-let DATA = null, BUCKETS = null, TAB = 'paper', HOMONYMES = new Set();
-let SEL = {paper:0, round:0, gain:0, late:0};
-const TONE = {paper:'acid', round:'hot', gain:'ice', late:'hot'};
-
-// How the three tabs are sorted.
-//   paperhand : the peak came AFTER you exited, you left too early
-//   roundtrip : you rode through the peak without selling, then sold below it
-//   gained    : the lines where you actually made money
-// The peak's date and the exit's date are enough to decide. A position whose
-// peak hasn't been verified is NOT dumped into paperhand by default: we don't
-// know, and writing it wrong would be worse than omitting it.
-function ranger(positions){
-  const paper = [], round = [];
-  const classe = new Set();
-  for (const p of positions) {
-    if (!p.peak_measured || !p.peak_at || !p.end_holding_at) continue;
-    (p.peak_at > p.end_holding_at ? paper : round).push(p);
-    classe.add(p.address);
-  }
-  const gain = positions.filter(p => (p.realized_profit_sol ?? 0) > 0);
-  // Late entries: the token had already made its peak BEFORE the buy. This
-  // isn't a paperhand, it's the opposite, and confusing it with the others
-  // was exactly the bug fixed on CATE.
-  const late = positions.filter(p => p.late_peak_at && p.entry_price > 0);
-  for (const p of late) classe.add(p.address);
-  // Unclassified = neither sorted into a tab nor identified as a late entry.
-  const inconnu = positions.filter(p => !classe.has(p.address)).length;
-  const tri = (l, k) => l.slice().sort((a,b) => (b[k] ?? 0) - (a[k] ?? 0));
-  return {
-    paper: tri(paper, 'paperhand_sol'),
-    round: tri(round, 'paperhand_sol'),
-    gain:  tri(gain,  'realized_profit_sol'),
-    late:  late.slice().sort((a,b) => (b.late_peak_price/b.entry_price) - (a.late_peak_price/a.entry_price)),
-    inconnu,
-  };
-}
-
-const STEPS = ['Opening the case file','Rebuilding your positions','Pulling each token peak','Reaching a verdict'];
-let stepTimer = null;
-function runSteps(){
+/* --- the run ------------------------------------------------------------- */
+const ETAPES = [
+  'reading your trades…',
+  'pulling the price history…',
+  'finding the peak after each sale…',
+  'pricing what you let go…',
+];
+let minuteur = null;
+function battre(on) {
+  $('pulse').classList.toggle('on', on);
+  if (!on) { clearInterval(minuteur); $('steps').textContent = ''; return; }
   let i = 0;
-  const tick = () => {
-    if (i >= STEPS.length) i = STEPS.length - 1;
-    $('#steps').textContent = String(i+1).padStart(2,'0') + '  ' + STEPS[i];
-    i++;
-    stepTimer = setTimeout(tick, 2000);
-  };
-  tick();
+  $('steps').textContent = ETAPES[0];
+  minuteur = setInterval(() => { i = (i + 1) % ETAPES.length; $('steps').textContent = ETAPES[i]; }, 1500);
 }
 
-$('#form').addEventListener('submit', async e => {
+$('form').onsubmit = async (e) => {
   e.preventDefault();
-  const w = $('#wallet').value.trim();
-  $('#err').style.display = 'none';
-  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(w)) {
-    $('#err').textContent = 'That does not look like a Solana address.';
-    $('#err').style.display = 'block'; return;
-  }
-  $('#go').disabled = true; $('#pulse').classList.add('on'); runSteps();
+  const token = $('token').value.trim();
+  const wallets = [...document.querySelectorAll('#wallets input.w')].map((i) => i.value.trim()).filter(Boolean);
+  $('err').style.display = 'none';
+  if (!token) return echec('Paste the token address first.');
+  if (!wallets.length) return echec('At least one wallet, otherwise there is nothing to check.');
+
+  $('go').disabled = true; battre(true);
   try {
-    const r = await fetch('/api/analyze?wallet=' + encodeURIComponent(w));
+    const r = await fetch('/api/check?token=' + encodeURIComponent(token) + '&wallets=' + encodeURIComponent(wallets.join(',')));
     const j = await r.json();
-    if (!r.ok) throw new Error(j.error || 'Error ' + r.status);
-    DATA = j; BUCKETS = ranger(j.positions);
-    // Spot symbols carried by several mints: on pump.fun this is the norm,
-    // not the exception, and two different "Yomogi" tokens across two tabs
-    // read like a contradiction.
-    const vus = new Map();
-    for (const p of j.positions) {
-      const k = (p.symbol || '?').toLowerCase();
-      if (!vus.has(k)) vus.set(k, new Set());
-      vus.get(k).add(p.address);
-    }
-    HOMONYMES = new Set([...vus].filter(([, a]) => a.size > 1).map(([k]) => k));
-    SEL = {paper:0, round:0, gain:0, late:0};
-    TAB = BUCKETS.paper.length ? 'paper' : (BUCKETS.round.length ? 'round' : 'gain');
-    document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x.dataset.k === TAB));
-    $('#s1').classList.remove('on'); $('#s2').classList.add('on');
-    paint();
-  } catch (err) {
-    $('#err').textContent = err.message; $('#err').style.display = 'block';
+    if (!r.ok) throw new Error(j.error || 'that did not work');
+    rendre(j);
+    $('s1').classList.remove('on'); $('s2').classList.add('on');
+  } catch (ex) {
+    echec(ex.message);
   } finally {
-    clearTimeout(stepTimer); $('#pulse').classList.remove('on'); $('#steps').textContent = ''; $('#go').disabled = false;
+    $('go').disabled = false; battre(false);
   }
-});
+};
+function echec(m) { $('err').textContent = m; $('err').style.display = 'block'; }
+$('again').onclick = () => { $('s2').classList.remove('on'); $('s1').classList.add('on'); };
 
-document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
-  TAB = b.dataset.k;
-  document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === b));
-  paint();
-}));
+/* --- rendering ----------------------------------------------------------- */
+let dernier = null;
 
-function cell(k, v, sub, hi){
-  return '<div class="cell' + (hi ? ' hi' : '') + '"><div class="k">' + k + '</div>'
-       + '<div class="v">' + v + (sub ? '<em>' + sub + '</em>' : '') + '</div></div>';
-}
+function rendre(d) {
+  dernier = d;
+  const t = d.token, p = d.position, v = d.verdict, s = d.sommet;
 
-function paint(){
-  const root = document.documentElement.style;
-  root.setProperty('--tone', 'var(--' + TONE[TAB] + ')');
-  root.setProperty('--tone-deep', 'var(--' + TONE[TAB] + '-deep)');
-  root.setProperty('--tone-wash', 'var(--' + TONE[TAB] + '-wash)');
+  $('r-sym').textContent = t.symbol || court(t.address);
+  $('r-name').textContent = (t.name || '') + (t.launchpad ? ' · ' + t.launchpad : '');
+  $('r-ini').textContent = (t.symbol || '?').slice(0, 3).toUpperCase();
+  $('r-av').querySelectorAll('img').forEach((i) => i.remove());
+  if (t.logo) {
+    const img = new Image();
+    img.alt = ''; img.referrerPolicy = 'no-referrer';
+    img.onerror = () => img.remove();
+    img.src = d.logo_proxy ? '/api/logo?u=' + encodeURIComponent(t.logo) : t.logo;
+    $('r-av').appendChild(img);
+  }
 
-  const t = { ...DATA.totals, stale: DATA.stale, cached_age_minutes: DATA.cached_age_minutes };
-  $('#c-paper').textContent = BUCKETS.paper.length + ' tokens';
-  $('#c-round').textContent = BUCKETS.round.length + ' tokens';
-  $('#c-gain').textContent  = BUCKETS.gain.length + ' tokens';
-  $('#c-late').textContent  = BUCKETS.late.length + ' tokens';
-  $('#f-wallet').textContent = short(DATA.wallet);
+  const TITRES = { paperhand: 'Sold too early', roundtrip: 'Round trip', too_late: 'Late to the party', holding: 'Still holding' };
+  const TON = { paperhand: 'var(--hot)', roundtrip: 'var(--ice)', too_late: 'var(--ice)', holding: 'var(--bone-2)' };
+  $('r-badge').textContent = TITRES[v.categorie] || v.categorie;
+  document.querySelector('.frame').style.setProperty('--tone', TON[v.categorie] || 'var(--acid)');
 
-  const e = t.ecartes || {};
-  const off = (e.non_memecoin || 0) + (e.ath_invraisemblable || 0);
-  const classes = BUCKETS.paper.length + BUCKETS.round.length;
-  const bits = [];
-
-  // When almost nothing could be verified, say so first and clearly: an
-  // empty tab with no explanation reads like a failure.
-  if (classes < 3 && BUCKETS.inconnu > 5) {
-    bits.push('<span class="warn">Peak data was rate-limited, so only ' + classes
-      + ' position' + (classes === 1 ? '' : 's') + ' could be classified. Reload in a minute for the full split.</span>');
+  /* left: what the exit cost, or why there is no such number */
+  const g = $('r-left');
+  g.className = 'side ' + (v.categorie === 'too_late' || v.categorie === 'holding' ? 'cold' : 'regret');
+  if (v.categorie === 'holding') {
+    $('r-left-k').textContent = 'Nothing sold yet';
+    $('r-left-v').innerHTML = sol(p.bought_sol) + '<em>SOL in</em>';
+    $('r-left-why').textContent = 'You still hold ' + Math.round(p.balance).toLocaleString('en-US')
+      + ' ' + (t.symbol || 'tokens') + '. There is no exit to judge, so there is no regret to show.';
+  } else if (v.regret === null) {
+    $('r-left-k').textContent = 'Not priceable';
+    $('r-left-v').innerHTML = '—';
+    $('r-left-why').textContent = 'The candles do not reach far enough back to price these sales. '
+      + 'Rather than show you a number built on a gap, this one stays blank.';
   } else {
-    bits.push('Peaks measured from your entry, never before it.');
+    $('r-left-k').textContent = v.categorie === 'too_late' ? 'Left on the table after you got in' : 'What the exit cost you';
+    $('r-left-v').innerHTML = sol(v.regret_sol) + '<em>SOL · ' + usd(v.regret) + '</em>';
+    const quand = s && s.quand ? heure(s.quand) : '';
+    $('r-left-why').textContent = v.categorie === 'paperhand'
+      ? 'Your last sale was ' + heure(p.sortie) + '. The top came after, on ' + quand + '. Each of your '
+        + p.total_sells + ' sales is priced against the highest point that followed it: ' + v.multiple + '× what you actually took.'
+      : v.categorie === 'too_late'
+        ? 'The token had already topped ' + v.retard_multiple + '× higher before your first buy, so that high was never yours to take. '
+          + 'This is only what was still reachable after you got in.'
+        : 'You were holding when it topped, on ' + quand + ', and sold under it. Priced sale by sale, that is '
+          + v.multiple + '× what you took out.';
   }
-  if (t.partiel) bits.push('<span class="warn">Big wallet: the analysis hit its time budget, so this is a partial view of it.</span>');
-  if (t.sommets_possibles > t.sommets_cherches) bits.push('Totals cover all '
-    + t.positions_sold + ' sold positions. Peaks resolved for the '
-    + t.sommets_cherches + ' largest so far; the rest fills in the background, reload later for more.');
-  if (t.stale) bits.push('Showing a cached result from ' + t.cached_age_minutes + ' min ago.');
-  if (off) bits.push(off + ' non-memecoin excluded.');
-  if (BUCKETS.inconnu) bits.push(BUCKETS.inconnu + ' unclassified, no candle history.');
-  $('#note').innerHTML = bits.join(' ')
-    + (TAB === 'round' ? ' <span class="warn">Round-tripped: the peak happened while you were still holding.</span>' : '')
-    + (TAB === 'late' ? ' <span class="warn">These are not paperhands: the token had already topped before you bought. You were late, not early.</span>' : '');
 
-  const list = BUCKETS[TAB];
-  if (!list.length) {
-    $('#strip').innerHTML = '';
-    $('#detail').innerHTML = '<div class="empty">'
-      + (BUCKETS.inconnu > 5 && classes < 3
-          ? 'Peak data is rate-limited right now, so this split could not be computed.<br>Reload in a minute.'
-          : 'Nothing in this bucket for this wallet.')
-      + '</div>';
-    return;
+  /* right: the number that keeps the first honest */
+  const h = $('r-right');
+  if (!t.prix_connu) {
+    h.className = 'side cold';
+    $('r-right-k').textContent = 'And today';
+    $('r-right-v').innerHTML = '—';
+    $('r-right-why').textContent = 'No current price for this token, so whether you were right to sell cannot be answered. Silence beats a zero pretending to be an answer.';
+  } else if (v.eu_raison) {
+    h.className = 'side right';
+    $('r-right-k').textContent = 'You were right';
+    $('r-right-v').innerHTML = sol(Math.abs(v.ecart_aujourdhui_sol)) + '<em>SOL saved</em>';
+    $('r-right-why').textContent = 'What you sold is worth ' + usd(v.valeur_aujourdhui) + ' today against the '
+      + usd(p.sold_income) + ' you took. Holding would have cost you the difference.';
+  } else {
+    h.className = 'side regret';
+    $('r-right-k').textContent = 'Holding would have paid';
+    $('r-right-v').innerHTML = sol(v.ecart_aujourdhui_sol) + '<em>SOL more</em>';
+    $('r-right-why').textContent = 'What you sold is worth ' + usd(v.valeur_aujourdhui) + ' today, above the '
+      + usd(p.sold_income) + ' you took for it.';
   }
-  if (SEL[TAB] >= list.length) SEL[TAB] = 0;
 
-  const cle = TAB === 'gain' ? 'realized_profit_sol'
-            : TAB === 'late' ? 'bought_cost_sol' : 'paperhand_sol';
-  $('#strip').innerHTML = list.slice(0, 10).map((p, i) => {
-    const ini = (p.symbol || '?').slice(0,2).toUpperCase();
-    let pct = null;
-    if (TAB === 'late') {
-      pct = p.entry_price > 0 ? (100 * p.late_peak_price / p.entry_price) : null;
-    } else {
-      const base = TAB === 'gain' ? p.bought_cost_sol : p.sold_income_sol;
-      pct = (base > 0) ? (100 * (p[cle] ?? 0) / base) : null;
-    }
-    return '<button class="pick" type="button" data-i="' + i + '" aria-current="' + (i === SEL[TAB]) + '">'
-      + '<span class="rank">' + (i+1) + '</span>'
-      + '<span class="av"><b>' + ini + '</b>' + (p.logo ? '<img src="' + pic(p.logo) + '" alt="" loading="lazy">' : '') + '</span>'
-      + '<span class="who"><span class="s">' + (p.symbol || '?')
-      + (HOMONYMES.has((p.symbol || '?').toLowerCase())
-          ? '<em class="dup">' + p.address.slice(0,4) + '</em>' : '') + '</span>'
-      + '<span class="n">' + (p.name || '') + '</span>'
-      + '<span class="v">' + sol(p[cle]) + ' SOL'
-      + (pct !== null ? ' <em>(' + Math.round(pct).toLocaleString('en-US') + '%)</em>' : '')
-      + '</span></span></button>';
-  }).join('');
+  $('r-in').innerHTML = sol(p.bought_sol) + '<em>SOL</em>';
+  $('r-out').innerHTML = sol(p.sold_sol) + '<em>SOL</em>';
+  $('r-net').innerHTML = sol(p.realized_profit_sol, true) + '<em>SOL</em>';
+  $('r-peak').innerHTML = s && s.quand ? jour(s.quand) + '<em>' + precision(s.precision_secondes) + '</em>' : '—';
 
-  $('#strip').querySelectorAll('.pick').forEach(b => b.addEventListener('click', () => {
-    SEL[TAB] = Number(b.dataset.i); paint();
-  }));
+  $('r-window').textContent = jour(p.entree) + ' → ' + (p.sortie ? jour(p.sortie) : 'still open')
+    + ' · ' + duree(p.duree_secondes) + ' · ' + p.total_buys + ' buys, ' + p.total_sells + ' sells';
 
-  const p = list[SEL[TAB]];
-  const titre = TAB === 'paper' ? 'Total paperhanded'
-              : TAB === 'round' ? 'Total round-tripped'
-              : TAB === 'gain'  ? 'Total gained'
-              : 'You bought after the top';
-  const gros = TAB === 'gain' ? p.realized_profit_sol
-             : TAB === 'late' ? p.bought_cost_sol : p.paperhand_sol;
-  const grosUsd = TAB === 'gain' ? p.realized_profit
-                : TAB === 'late' ? p.bought_cost : p.paperhand;
-  const retard = (TAB === 'late' && p.late_peak_at && p.start_holding_at)
-    ? p.start_holding_at - p.late_peak_at : null;
-  const mult = (TAB === 'late' && p.entry_price > 0)
-    ? p.late_peak_price / p.entry_price : null;
+  /* per-wallet split */
+  const w = p.par_wallet;
+  $('r-split').style.display = w.length > 1 ? 'block' : 'none';
+  $('r-split-k').textContent = w.length + ' wallets, added together';
+  $('r-rows').innerHTML = w.map((x) =>
+    '<div class="wrow"><span class="a">' + court(x.wallet) + '</span><span class="b">'
+    + x.achats + ' buys ' + sol(x.bought_sol) + ' · ' + x.ventes + ' sells <b>' + sol(x.sold_sol) + ' SOL</b>'
+    + (x.balance > 0 ? ' · still holding' : '') + '</span></div>').join('');
 
-  $('#detail').innerHTML =
-      '<div class="totline"><span class="lbl">' + titre + '</span>'
-    + '<button class="ca" type="button" id="copyca" title="Copy contract address"><span id="catxt">CA: ' + short(p.address) + '</span>'
-    + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="3" stroke="currentColor" stroke-width="2"/><path d="M5 15V6a3 3 0 0 1 3-3h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
-    + '</button></div>'
-    + '<div class="big">' + sol(gros) + ' SOL<span class="sub">' + usd(grosUsd) + ' · '
-    + qty(p.sold_amount) + ' ' + (p.symbol || '')
-    + (HOMONYMES.has((p.symbol || '?').toLowerCase()) ? ' (' + p.address.slice(0,4) + '…)' : '')
-    + '</span></div>'
-    + '<div class="grid">'
-    + (TAB === 'late'
-        ? cell('Bought with', sol(p.bought_cost_sol) + ' SOL', usd(p.bought_cost), false)
-          + cell('Sold for', sol(p.sold_income_sol) + ' SOL', usd(p.sold_income), false)
-          + cell('Top was', mult ? (mult.toFixed(1) + '× your entry') : '—', '', true)
-          + cell('You arrived', retard !== null ? (dur(retard) + ' late') : '—', '', false)
-        : cell('Bought with', sol(p.bought_cost_sol) + ' SOL', usd(p.bought_cost), false)
-          + cell('Sold for', sol(p.sold_income_sol) + ' SOL', usd(p.sold_income), false)
-          + cell(TAB === 'gain' ? 'Kept' : 'Fumbled', sol(gros) + ' SOL', usd(grosUsd), true)
-          + cell('Held for', dur(p.held_seconds),
-                  p.total_sells > 1 ? ('in ' + p.total_sells + ' sells') : '', false))
-    + '</div>';
-
-  $('#copyca').addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(p.address);
-      $('#catxt').textContent = 'CA copied';
-      setTimeout(() => { $('#catxt').textContent = 'CA: ' + short(p.address); }, 1600);
-    } catch {
-      $('#catxt').textContent = 'copy blocked';
-      setTimeout(() => { $('#catxt').textContent = 'CA: ' + short(p.address); }, 1600);
-    }
-  });
+  /* what the number does not cover, said out loud */
+  const dits = [];
+  if (d.wallets.sans_position.length) dits.push(d.wallets.sans_position.length + ' of the wallets you gave never traded this token');
+  if (d.wallets.en_erreur.length) dits.push('<span class="warn">' + d.wallets.en_erreur.length + ' wallet(s) could not be read, so their trades are missing</span>');
+  if (v.ventes_sans_sommet) dits.push('<span class="warn">' + v.ventes_sans_sommet + ' of ' + p.total_sells + ' sales have no price history after them and are left out</span>');
+  if (v.ventes_au_dessus_des_bougies) dits.push(v.ventes_au_dessus_des_bougies + ' sale(s) landed above the candle high, and count at their own price');
+  if (s && !s.couverture_complete) dits.push('<span class="warn">the price history does not reach your entry, so the peak may be understated</span>');
+  if (s) dits.push('peak read from ' + s.bougies + ' ' + s.resolution + ' candles, dated ' + precision(s.precision_secondes));
+  dits.push('SOL at ' + usd(d.sol_rate) + ' on the exit date');
+  $('r-note').innerHTML = dits.join(' · ');
 }
 
-$('#again').addEventListener('click', () => {
-  $('#s2').classList.remove('on'); $('#s1').classList.add('on');
-  $('#wallet').value = ''; $('#wallet').focus();
-});
-
-$('#share').addEventListener('click', async () => {
-  const list = BUCKETS[TAB]; if (!list.length) return;
-  const p = list[SEL[TAB]];
-  const mot = TAB === 'paper' ? 'paperhanded' : TAB === 'round' ? 'round-tripped' : 'made';
-  const val = TAB === 'gain' ? p.realized_profit_sol : p.paperhand_sol;
-  const txt = 'I ' + mot + ' ' + sol(val) + ' SOL on ' + (p.symbol || '?')
-    + '.\nHeld for ' + dur(p.held_seconds) + '. jeetcheck';
-  const fin = m => { $('#share').textContent = m; setTimeout(() => { $('#share').textContent = 'Share'; }, 1600); };
-  try { await navigator.clipboard.writeText(txt); fin('Copied'); }
-  catch { fin('Blocked'); }
-});
-
-const pre = new URLSearchParams(location.search).get('w');
-if (pre) { $('#wallet').value = pre; $('#form').dispatchEvent(new Event('submit')); }
+$('share').onclick = async () => {
+  if (!dernier) return;
+  const v = dernier.verdict, t = dernier.token;
+  const texte = v.categorie === 'holding'
+    ? 'Still holding ' + t.symbol + '. Nothing to regret yet. jeetcheck'
+    : v.regret === null
+      ? t.symbol + ': not enough price history to price the exit. jeetcheck'
+      : 'I sold ' + t.symbol + ' for ' + sol(dernier.position.sold_sol) + ' SOL. The peaks after my sales were worth '
+        + sol(v.valeur_au_sommet_sol) + '. ' + (v.eu_raison ? 'And I was still right to sell.' : 'I was wrong to sell.') + ' jeetcheck';
+  try {
+    await navigator.clipboard.writeText(texte);
+    $('share').textContent = 'Copied';
+    setTimeout(() => { $('share').textContent = 'Copy'; }, 1600);
+  } catch { $('share').textContent = 'Copy failed'; }
+};
 </script>
 </body>
 </html>

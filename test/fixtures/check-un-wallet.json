@@ -1,0 +1,89 @@
+{
+    "token": {
+        "address": "4978aTN9W3CDuUREGxAQaBYqhPXt8142N4o4Sfgzpump",
+        "symbol": "YOMOGI",
+        "name": "Yomogicoin",
+        "logo": "https://gmgn.ai/external-res/1e99f7fea6051012ab76d57fec8f0fe1_v2.webp",
+        "launchpad": "pump",
+        "creation": 1787445929,
+        "price_now": 5.8211752e-05,
+        "prix_connu": true
+    },
+    "wallets": {
+        "demandes": [
+            "y3TndRqMmtwjTCEzJAEhMit7iH6Z9zLk1XxURUCde3es"
+        ],
+        "avec_position": [
+            "y3TndRqMmtwjTCEzJAEhMit7iH6Z9zLk1XxURUCde3es"
+        ],
+        "sans_position": [],
+        "en_erreur": []
+    },
+    "position": {
+        "bought_amount": 7197305.129772,
+        "bought_cost": 118.94,
+        "bought_sol": 1.237,
+        "sold_amount": 7197305.129771998,
+        "sold_income": 942.93,
+        "sold_sol": 9.8665,
+        "realized_profit": 823.99,
+        "realized_profit_sol": 8.6295,
+        "total_buys": 2,
+        "total_sells": 30,
+        "balance": 0,
+        "encore_detenu": false,
+        "valeur_detenue": 0,
+        "entree": 1787446124,
+        "sortie": 1787455240,
+        "duree_secondes": 9116,
+        "par_wallet": [
+            {
+                "wallet": "y3TndRqMmtwjTCEzJAEhMit7iH6Z9zLk1XxURUCde3es",
+                "achats": 2,
+                "ventes": 30,
+                "bought_amount": 7197305.129772,
+                "sold_amount": 7197305.129771998,
+                "bought_cost": 118.94,
+                "sold_income": 942.93,
+                "bought_sol": 1.237,
+                "sold_sol": 9.8665,
+                "entree": 1787446124,
+                "sortie": 1787455240,
+                "balance": 0
+            }
+        ]
+    },
+    "sommet": {
+        "prix": 0.0024892626,
+        "quand": 1787453880,
+        "prix_vie": 0.0024892626,
+        "quand_vie": 1787453700,
+        "resolution": "5m",
+        "precision_secondes": 60,
+        "couverture_complete": true,
+        "bougies": 735
+    },
+    "verdict": {
+        "categorie": "roundtrip",
+        "valeur_au_sommet": 17598.96,
+        "regret": 16656.03,
+        "multiple": 18.66,
+        "retard_multiple": null,
+        "precision_secondes": 60,
+        "valeur_au_sommet_sol": 184.4174,
+        "regret_sol": 174.5366,
+        "valeur_aujourdhui": 418.97,
+        "valeur_aujourdhui_sol": 4.2726,
+        "ecart_aujourdhui": -523.96,
+        "ecart_aujourdhui_sol": -5.3433,
+        "eu_raison": true,
+        "ventes_chiffrees": 30,
+        "ventes_sans_sommet": 0,
+        "ventes_au_dessus_des_bougies": 2
+    },
+    "sol_rate": 95.43,
+    "sol_rate_now": 98.06,
+    "generated_at": 1787671353,
+    "partiel": false,
+    "logo_proxy": false
+}
