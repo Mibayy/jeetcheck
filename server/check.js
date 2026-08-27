@@ -166,7 +166,10 @@ export async function checkToken(mint, wallets) {
       address: mint,
       symbol: nettoyerSymbole(infoToken?.symbol),
       name: nettoyerSymbole(infoToken?.name),
-      logo: infoToken?.logo ?? "",
+      // L'image de pump.fun d'abord : celle de GMGN est servie depuis un hote
+      // que ni ce serveur ni le navigateur ne joignent, et sa requete PEND au
+      // lieu d'echouer, donc rien ne se replie et la carte reste vide.
+      logo: sommets?.image || infoToken?.logo || "",
       launchpad: infoToken?.launchpad ?? "",
       creation,
       price_now: priceNow,

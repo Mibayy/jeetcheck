@@ -68,9 +68,14 @@ export default function Carte({ d, actif, setActif }) {
             sur erreur laisse un carre vide pour toujours. Une image absente ne
             doit rien coûter. */}
         <div className="relative size-12 shrink-0 overflow-hidden rounded-[14px] border border-seam-lit bg-pit-2">
-          <span className="absolute inset-0 grid place-items-center font-mono text-[13px] font-extrabold text-bone-3">
-            {(t.symbol || "?").slice(0, 3).toUpperCase()}
-          </span>
+          {/* Retirees des que l'image est la, et non laissees en fond : beaucoup
+              de logos pump.fun sont des PNG a fond transparent, et les
+              initiales transparaissaient au travers. */}
+          {!logoOk && (
+            <span className="absolute inset-0 grid place-items-center font-mono text-[13px] font-extrabold text-bone-3">
+              {(t.symbol || "?").slice(0, 3).toUpperCase()}
+            </span>
+          )}
           {t.logo && (
             <img src={d.logo_proxy ? "/api/logo?u=" + encodeURIComponent(t.logo) : t.logo}
                  alt="" referrerPolicy="no-referrer" loading="eager"
@@ -114,12 +119,20 @@ export default function Carte({ d, actif, setActif }) {
         {/* Le chiffre, seul, sans paragraphe sous lui */}
         <div className="mt-5">
           <div className="font-sans text-[11px] uppercase tracking-[0.16em] text-bone-3">Paperhanded</div>
+          {/* En VERT, et c'est tout le trait d'esprit : la couleur du gain posee
+              sur un desastre. En rouge, la carte prend l'air grave et cesse
+              d'etre partageable. */}
           <div className="mt-1.5 font-mono text-[clamp(34px,9vw,58px)] font-extrabold leading-[0.94]
-                          tracking-[-0.03em] tabular-nums text-miss-lit">
+                          tracking-[-0.03em] tabular-nums text-gain-lit">
             {compact(vendus)} <span className="text-[0.44em] text-bone-2">{t.symbol}</span>
           </div>
           <div className="mt-2 font-mono text-[15px] tabular-nums text-bone-2">
-            {v.regret === null ? "not priceable" : <>{sol(v.regret_sol)} SOL <span className="text-bone-3">· {usd(v.regret)}</span></>}
+            {v.regret === null ? "not priceable" : <>
+              {sol(v.regret_sol)} SOL <span className="text-bone-3">· {usd(v.regret)}</span>
+              {/* Le multiple, pose la sans un mot. Quand il est absurde, il l'est
+                  tout seul ; l'annoncer gacherait l'effet. */}
+              {v.multiple ? <span className="text-bone-3"> · ×{v.multiple}</span> : null}
+            </>}
           </div>
         </div>
 
@@ -128,9 +141,9 @@ export default function Carte({ d, actif, setActif }) {
         {/* Quatre indicateurs, rien d'autre */}
         <div className="mt-4 grid grid-cols-2 gap-2.5">
           <Bloc k="Bought with" v={`${sol(achatSol)} SOL`} sub={usd(achatUsd)} />
-          <Bloc k="Sold for"    v={`${sol(venteSol)} SOL`} sub={usd(venteUsd)} ton="text-gain-lit" />
+          <Bloc k="Sold for"    v={`${sol(venteSol)} SOL`} sub={usd(venteUsd)} />
           <Bloc k="Fumbled"     v={v.regret_sol === null ? "—" : `${sol(v.regret_sol)} SOL`}
-                sub={usd(v.regret)} ton="text-miss-lit" />
+                sub={usd(v.regret)} />
           <Bloc k="Held for"    v={duree(p.duree_secondes)} sub={quand(p.entree)} />
         </div>
 
@@ -165,12 +178,18 @@ export default function Carte({ d, actif, setActif }) {
 
         <Partage d={d} />
 
-        {/* La seule mention restante : ce que le chiffre ne couvre pas. */}
-        <p className="mt-4 font-mono text-[10px] leading-relaxed text-bone-4">
-          peak {s?.vie_source === "pumpfun" ? "dated to the second" : `read from ${s?.bougies ?? "?"} ${s?.resolution ?? ""} candles`}
-          {v.ventes_au_dessus_des_bougies > 0 && ` · ${v.ventes_au_dessus_des_bougies} sale(s) above the candle high, counted at their own price`}
-          {!t.prix_connu && " · no current price, so \"was it right\" has no answer"}
-        </p>
+        {/* Elle ne sort QUE s'il y a quelque chose a dire. Le decompte de
+            bougies etait le dernier reste de ton comptable : vrai, inutile, et
+            il donnait a la carte l'air d'une note de bas de page. Ce qui reste
+            est ce qui rendrait un chiffre trompeur si on le taisait. */}
+        {(s?.ath_suspect || v.ventes_au_dessus_des_bougies > 0 || !t.prix_connu) && (
+          <p className="mt-4 font-mono text-[10px] leading-relaxed text-bone-4">
+            {s?.ath_suspect && "the candles disagree with the known all-time high, so this is a floor"}
+            {v.ventes_au_dessus_des_bougies > 0
+              && `${s?.ath_suspect ? " · " : ""}${v.ventes_au_dessus_des_bougies} sale(s) above the candle high, counted at their own price`}
+            {!t.prix_connu && " · no current price, so \"was it right\" has no answer"}
+          </p>
+        )}
       </div>
     </article>
   );

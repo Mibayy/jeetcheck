@@ -283,6 +283,7 @@ export async function sommetsToken(mint, { creation, entree, maintenant }, appel
   let vie = sommetDeSerie(serie);
   let seauVie = choisie.sec;
   let vieSource = "bougies";
+  let image = "";
 
   // A second opinion on WHEN the token topped, and on nothing else.
   //
@@ -304,6 +305,9 @@ export async function sommetsToken(mint, { creation, entree, maintenant }, appel
     try {
       const a = await athPump(mint);
       if (a && a.prix > 0 && a.quand > 0) {
+        // L'image voyage avec la reponse, quel que soit le verdict sur le prix :
+        // elle ne coute rien et elle est independante du desaccord eventuel.
+        if (a.image) image = a.image;
         vieSource = Math.abs(a.prix / vie.prix - 1) <= ECART_ATH_TOLERE ? "pumpfun" : "desaccord";
         if (vieSource === "pumpfun") {
           vie = { prix: vie.prix, quand: a.quand };
@@ -369,6 +373,7 @@ export async function sommetsToken(mint, { creation, entree, maintenant }, appel
     // second), or "desaccord" (pump.fun answered a different peak and was
     // refused, which is worth seeing rather than hiding).
     vie_source: vieSource,
+    image,
     trou_max: trouMax(serie, choisie.sec),
     resolution: choisie.res,
     couverture_complete: couverture,

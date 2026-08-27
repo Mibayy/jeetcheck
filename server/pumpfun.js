@@ -163,7 +163,13 @@ export async function athPumpFun(mint, decimals) {
       const capAth = Number(d?.ath_market_cap ?? 0);
       const quand = Math.floor(Number(d?.ath_market_cap_timestamp ?? 0) / 1000);
       if (offre > 0 && capAth > 0 && Number.isFinite(quand) && quand > 0) {
-        valeur = { prix: capAth / offre, quand, source: "pumpfun" };
+        // L'image vient du MEME appel, donc elle est gratuite, et elle compte :
+        // GMGN sert ses logos depuis `gmgn.ai/external-res`, que ni ce serveur
+        // ni un navigateur ne joignent. La requete ne repond ni n'echoue, elle
+        // PEND, donc aucun `onerror` ne part jamais et la carte garde un carre
+        // vide indefiniment. Une image absente doit couter zero.
+        valeur = { prix: capAth / offre, quand, source: "pumpfun",
+                   image: passerelleImage(String(d?.image_uri ?? "").trim()) };
       }
     } else if (res.status !== 404) {
       console.error(`[pumpfun] ${mint}: http ${res.status}`);
@@ -178,4 +184,24 @@ export async function athPumpFun(mint, decimals) {
   memo.set(mint, { valeur, expire: Date.now() + (fige ? TTL_FIGE_MS : TTL_VIVANT_MS) });
   planifierSauvegarde();
   return valeur;
+}
+
+/**
+ * L'image d'un token, sur une passerelle qu'un navigateur charge vraiment.
+ *
+ * MESURE le 27/08/2026 : 44 des 70 `image_uri` de pump.fun pointent sur
+ * `ipfs.io`, qui sert pourtant le fichier en 0,14 s depuis un serveur mais que
+ * le recuperateur d'images d'un client distant n'arrive pas a charger. Sur un
+ * CID complet, la passerelle publique `gateway.pinata.cloud` rend 429 la ou
+ * celle de pump.fun rend 200.
+ *
+ * Seuls les liens IPFS sont reecrits : les CDN dedies marchent deja, et les
+ * faire transiter par une passerelle IPFS les casserait.
+ */
+export function passerelleImage(u, passerelle = "https://pump.mypinata.cloud/ipfs/") {
+  if (!u) return "";
+  const i = u.indexOf("/ipfs/");
+  if (i < 0) return u;
+  const cid = u.slice(i + 6).split(/[?#]/)[0];
+  return cid ? passerelle + cid : u;
 }

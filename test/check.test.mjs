@@ -4,6 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { verdict } from "../server/positions.js";
+import { passerelleImage } from "../server/pumpfun.js";
 import { choisirResolutions, sommetDeSerie, serieCouvre, sommetsToken, viderSeries,
          FRAICHEUR_SERIE_S, SEUIL_BOUGIES } from "../server/gmgnkline.js";
 
@@ -399,4 +400,27 @@ test("two different tokens never share a series", async () => {
   const apresUn = c.n;
   await sommetsToken("MINT-F", { creation, entree: creation + 60, maintenant }, c.appel);
   assert.ok(c.n > apresUn);
+});
+
+// --- L'image du token ------------------------------------------------------
+//
+// GMGN sert ses logos depuis un hote que ni le serveur ni le navigateur ne
+// joignent, et la requete PEND au lieu d'echouer : aucun `onerror` ne part et
+// la carte garde un carre vide. L'image de pump.fun arrive dans un appel qu'on
+// fait deja, pour zero cout.
+
+test("un lien IPFS part sur la passerelle qui charge vraiment", () => {
+  assert.equal(passerelleImage("https://ipfs.io/ipfs/QmABC"),
+               "https://pump.mypinata.cloud/ipfs/QmABC");
+  assert.equal(passerelleImage("https://dweb.link/ipfs/bafk123?x=1"),
+               "https://pump.mypinata.cloud/ipfs/bafk123");
+});
+
+// 26 des 70 images viennent de CDN dedies qui fonctionnent : les faire transiter
+// par une passerelle IPFS les casserait.
+test("un CDN qui n'est pas IPFS reste intact, et une image absente reste vide", () => {
+  const u = "https://axiomtrading-v2.axiom-cdn.io/abc.png";
+  assert.equal(passerelleImage(u), u);
+  assert.equal(passerelleImage(""), "");
+  assert.equal(passerelleImage(null), "");
 });

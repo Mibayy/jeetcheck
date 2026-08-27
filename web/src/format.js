@@ -13,13 +13,17 @@ export const sol = (n) => (n === null || n === undefined || !isFinite(n))
 export const usd = (n) => (n === null || n === undefined || !isFinite(n))
   ? "—" : "$" + Math.round(Math.abs(n)).toLocaleString("en-US");
 
-/** Held for. Hours below two days, because "0.4 days" is not how anyone thinks. */
+/**
+ * Held for, in DAYS, always, including zero.
+ *
+ * "31h" is accurate and says nothing. "0 Days" is the same fact and it lands:
+ * the joke is the flatness, not a punchline. Rounded DOWN on purpose, because
+ * a position held eleven hours was not held for a day.
+ */
 export const duree = (s) => {
-  if (!s || !isFinite(s)) return "—";
-  const h = s / 3600;
-  if (h < 1) return Math.round(s / 60) + "m";
-  if (h < 48) return h < 10 ? h.toFixed(1) + "h" : Math.round(h) + "h";
-  return Math.round(h / 24) + "d";
+  if (s === null || s === undefined || !isFinite(s) || s < 0) return "—";
+  const j = Math.floor(s / 86400);
+  return j + (j === 1 ? " Day" : " Days");
 };
 
 export const court = (a) => (a ? a.slice(0, 4) + "…" + a.slice(-4) : "");
