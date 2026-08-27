@@ -245,3 +245,63 @@ test("the bucket the lifetime peak was read off is reported", async () => {
   const s = await sommetsToken("MINT", { creation, entree: creation + 60, maintenant }, faux);
   assert.equal(s.seau_vie, 300);
 });
+
+// --- pump.fun, to date the lifetime peak to the second ---------------------
+//
+// `vie` is what decides too_late, and candles can only date it to the bucket
+// they were read off, which is what produced a false too_late on 2026-08-27.
+// pump.fun answers `/coins/{mint}` without a key and gives the lifetime ATH
+// with a real timestamp. Measured the same day on two tokens: 0.28% and 0.87%
+// off GMGN on the price, and landing 63 s and 236 s AFTER GMGN's bucket start,
+// which is the bucket start being early rather than pump.fun being late.
+//
+// So it is used for its DATE and never for its price. Swapping the price would
+// change the number the whole tool rests on, on the word of a second source.
+
+const pipeline = (res) => async (r, fromMs) => bougies(Math.floor(fromMs / 1000), res.fin, r === "5m" ? 300 : 900);
+
+test("pump.fun confirming the peak hands over its date, not its price", async () => {
+  const creation = 1000000, maintenant = creation + J;
+  const faux = pipeline({ fin: maintenant });
+  const nu = await sommetsToken("MINT", { creation, entree: creation + 60, maintenant }, faux);
+  const ath = { prix: nu.vie.prix * 1.008, quand: nu.vie.quand + 173 };
+  const s = await sommetsToken("MINT", { creation, entree: creation + 60, maintenant }, faux, async () => ath);
+  assert.equal(s.vie.prix, nu.vie.prix, "the candle price stands");
+  assert.equal(s.vie.quand, ath.quand, "the date comes from pump.fun");
+  assert.equal(s.seau_vie, 0, "and it is no longer bound by a bucket");
+  assert.equal(s.vie_source, "pumpfun");
+});
+
+// A large disagreement is a real signal, not noise: it can be a launch spike the
+// candles never covered. But adopting it silently would rewrite the tool's
+// central number on a second source's word, so it is refused and reported.
+test("pump.fun disagreeing on the price changes nothing, and says so", async () => {
+  const creation = 1000000, maintenant = creation + J;
+  const faux = pipeline({ fin: maintenant });
+  const nu = await sommetsToken("MINT", { creation, entree: creation + 60, maintenant }, faux);
+  const s = await sommetsToken("MINT", { creation, entree: creation + 60, maintenant }, faux,
+    async () => ({ prix: nu.vie.prix * 21, quand: creation + 30 }));
+  assert.equal(s.vie.quand, nu.vie.quand, "the candle date stands");
+  assert.equal(s.seau_vie, nu.seau_vie);
+  assert.equal(s.vie_source, "desaccord");
+});
+
+test("no pump.fun answer leaves the candle peak exactly as it was", async () => {
+  const creation = 1000000, maintenant = creation + J;
+  const faux = pipeline({ fin: maintenant });
+  const nu = await sommetsToken("MINT", { creation, entree: creation + 60, maintenant }, faux);
+  for (const source of [async () => null, async () => { throw new Error("429"); }]) {
+    const s = await sommetsToken("MINT", { creation, entree: creation + 60, maintenant }, faux, source);
+    assert.equal(s.vie.quand, nu.vie.quand);
+    assert.equal(s.seau_vie, nu.seau_vie);
+    assert.equal(s.vie_source, "bougies");
+  }
+});
+
+test("a token that is not on pump.fun keeps the candle answer untouched", async () => {
+  const creation = 1000000, maintenant = creation + J;
+  const faux = pipeline({ fin: maintenant });
+  const s = await sommetsToken("MINT", { creation, entree: creation + 60, maintenant }, faux);
+  assert.equal(s.vie_source, "bougies");
+  assert.equal(s.seau_vie, 300);
+});

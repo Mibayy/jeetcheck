@@ -76,6 +76,7 @@
         "quand_vie": 1787336100,
         "resolution": "15m",
         "precision_secondes": 60,
+        "vie_source": "bougies",
         "couverture_complete": true,
         "bougies": 279
     },

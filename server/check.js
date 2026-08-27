@@ -21,6 +21,7 @@ import {
 } from "./gmgn.js";
 import { getSolSeries, faireConvertisseur } from "./solprice.js";
 import { sommetsToken, maximaApres } from "./gmgnkline.js";
+import { athPumpFun, estPumpFun } from "./pumpfun.js";
 import {
   normaliserTrades, agregerTrades, regretParVente, chiffrerDetenu, verdict,
   isValidSolanaAddress, nettoyerSymbole, num, round2,
@@ -111,7 +112,13 @@ export async function checkToken(mint, wallets) {
 
   let sommets = null;
   try {
-    sommets = await sommetsToken(mint, { creation, entree: agg.entree, maintenant });
+    // One extra call, keyless and cached forever, and only for `...pump` mints:
+    // it dates the lifetime peak to the second instead of to whichever bucket
+    // the coverage fallback settled on. That date is the one too_late turns on.
+    const second = estPumpFun(mint)
+      ? (m) => athPumpFun(m, num(infoToken?.decimals))
+      : null;
+    sommets = await sommetsToken(mint, { creation, entree: agg.entree, maintenant }, null, second);
   } catch (e) {
     console.error(`[check] peak failed for ${mint}: ${e.message}`);
   }
@@ -210,6 +217,10 @@ export async function checkToken(mint, wallets) {
       // series only ever gave four hours.
       precision_secondes: sommets.seau,
       precision_vie_secondes: sommets.seau_vie ?? sommets.seau,
+      // "bougies" (bucket-bound), "pumpfun" (dated to the second by a second
+      // source that agreed on the price), or "desaccord" (it answered a
+      // different peak and was refused, which is worth seeing).
+      vie_source: sommets.vie_source ?? "bougies",
       // False means the candle window was truncated from the start, so the
       // peak may be understated. Never presented as if it were certain.
       couverture_complete: sommets.couverture_complete,

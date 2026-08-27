@@ -130,12 +130,13 @@ trusted as they stand.
 server/
   check.js       the targeted check: one token, up to five wallets
   positions.js   pure arithmetic, shared: trades, aggregation, regret, verdict
-  gmgnkline.js   the peak, from candles, with the coverage guard
+  gmgnkline.js   the peak, from candles, with the two coverage guards
   gmgn.js        GMGN client: signing, pacing, the shared ban gate
   solprice.js    SOL/USD by date
   analyze.js     the older whole-wallet scan
   peak.js        GeckoTerminal candles, used only by the scan
-  pumpfun.js     pump.fun ATH, used only by the scan
+  pumpfun.js     pump.fun ATH: dates the lifetime peak for the check, and
+                 supplies it outright for the scan
 public/
   index.html     the check
   scan.html      the older scan, unlinked

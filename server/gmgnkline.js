@@ -103,6 +103,13 @@ export function trouMax(serie, sec) {
 // verdict.
 export const TROU_MAX_SEAUX = 50;
 
+// How far pump.fun's lifetime ATH may sit from the candles' and still count as
+// the same peak. Measured 2026-08-27 on two tokens: 0.28% and 0.87%. The repo's
+// earlier cross-check on five tokens gave 0.1% to 0.9%. Three percent is clear
+// of that spread and nowhere near a genuinely different peak, which on a
+// memecoin launch is a multiple and not a fraction of a percent.
+export const ECART_ATH_TOLERE = 0.03;
+
 /**
  * Highest price strictly AFTER a given moment, for any moment, without a
  * single extra call.
@@ -161,8 +168,10 @@ function normaliser(brut) {
  *
  * @param {(res: string, fromMs: number, toMs: number) => Promise<any[]>} [appelKline]
  *   injected for tests; defaults to the real GMGN client.
+ * @param {(mint: string) => Promise<{prix: number, quand: number}|null>} [athPump]
+ *   optional second opinion on `vie`, for its DATE only. See below.
  */
-export async function sommetsToken(mint, { creation, entree, maintenant }, appelKline = null) {
+export async function sommetsToken(mint, { creation, entree, maintenant }, appelKline = null, athPump = null) {
   const appel = appelKline
     ?? ((res, fromMs, toMs) => getTokenKline(mint, res, fromMs, toMs, 1000));
 
@@ -189,7 +198,42 @@ export async function sommetsToken(mint, { creation, entree, maintenant }, appel
 
   if (!choisie || !serie.length) return null;
 
-  const vie = sommetDeSerie(serie);
+  let vie = sommetDeSerie(serie);
+  let seauVie = choisie.sec;
+  let vieSource = "bougies";
+
+  // A second opinion on WHEN the token topped, and on nothing else.
+  //
+  // `vie` decides too_late, and candles can only date it to the bucket they
+  // were read off: on a four-hour fallback that is four hours of slack on the
+  // one comparison that inverts the verdict. pump.fun answers without a key and
+  // carries a real timestamp. Measured 2026-08-27 on two tokens: 0.28% and
+  // 0.87% off the candle price, landing 63 s and 236 s AFTER the bucket start,
+  // which is the bucket being early rather than pump.fun being late. On YOMOGI
+  // it agreed to the minute with what the refining pass had to spend a second
+  // call to find.
+  //
+  // Its PRICE is never adopted. A large disagreement is a real signal, and can
+  // be a launch spike on the bonding curve that the candles never covered, but
+  // rewriting the number the whole tool rests on because a second source says
+  // so is not a refinement, it is a source swap. So it confirms or it is
+  // refused, and the refusal is reported rather than swallowed.
+  if (vie && athPump) {
+    try {
+      const a = await athPump(mint);
+      if (a && a.prix > 0 && a.quand > 0) {
+        vieSource = Math.abs(a.prix / vie.prix - 1) <= ECART_ATH_TOLERE ? "pumpfun" : "desaccord";
+        if (vieSource === "pumpfun") {
+          vie = { prix: vie.prix, quand: a.quand };
+          seauVie = 0;               // a real timestamp, no bucket to allow for
+        }
+      }
+    } catch {
+      // The candle answer stands. A second opinion that cannot be reached is
+      // not a reason to have no answer.
+    }
+  }
+
   let depuis = sommetDeSerie(serie, entree ?? debut, choisie.sec);
   let precision = choisie.sec;
 
@@ -230,7 +274,11 @@ export async function sommetsToken(mint, { creation, entree, maintenant }, appel
     // against the entry with a one-minute margin, which manufactured a
     // too_late out of a bucket boundary (measured 2026-08-27 on NANDRY: a
     // roundtrip worth $1663 read as a too_late worth $428).
-    seau_vie: choisie.sec,
+    seau_vie: seauVie,
+    // Where `vie`'s DATE came from: "bougies" (bucket-bound), "pumpfun" (to the
+    // second), or "desaccord" (pump.fun answered a different peak and was
+    // refused, which is worth seeing rather than hiding).
+    vie_source: vieSource,
     trou_max: trouMax(serie, choisie.sec),
     resolution: choisie.res,
     couverture_complete: couverture,
