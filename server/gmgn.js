@@ -105,7 +105,22 @@ async function gmgnRequest(subPath, params, mode = "exist") {
     throw err;
   }
 
-  return res.json();
+  const data = await res.json();
+
+  // A refusal wearing a 200 is the failure that lies to everyone at once, and
+  // this is the only place it can be caught: past here it is indistinguishable
+  // from an honest empty answer. Raised as a 429 so the retry path treats it as
+  // what it is, and so every caller that already refuses to read an ERROR as
+  // "never traded" keeps doing the right thing without changing a line.
+  const refus = refusDeguise(data);
+  if (refus) {
+    const err = new Error(`GMGN ${subPath} -> refusal disguised as HTTP 200 (${refus})`);
+    err.status = 429;
+    err.bodyText = JSON.stringify(data).slice(0, 300);
+    throw err;
+  }
+
+  return data;
 }
 
 // GMGN temporarily bans the whole IP ("RATE_LIMIT_BANNED") if you keep
@@ -285,6 +300,31 @@ const MAX_INFOS = 500;
 /** For tests and for anything that needs a cold read. */
 export function viderInfosToken() {
   infosToken.clear();
+}
+
+/**
+ * A refusal wearing an HTTP 200.
+ *
+ * The most expensive mistake this repo has already paid for: hammering the API
+ * earns a `RATE_LIMIT_BANNED` on the whole IP, and the banned reply is an EMPTY
+ * array inside a 200. Read as data it says "this wallet never traded this
+ * token" — a confident lie, and under any real traffic it would be told to
+ * every visitor at once. The warning was in the docstring; nothing acted on it.
+ *
+ * Only explicit wording is flagged, never a non-zero code on its own: a guard
+ * that fires on a legitimate answer is worse than no guard, because the first
+ * false alarm is what teaches everyone to ignore it.
+ *
+ * @returns the marker found, or null.
+ */
+export function refusDeguise(data) {
+  if (!data || typeof data !== "object") return null;
+  const MARQUEURS = /rate[ _-]?limit|banned|ip[ _-]?ban|too[ _-]many[ _-]requests|forbidden|quota/i;
+  for (const cle of ["msg", "message", "error", "err", "reason", "code", "status"]) {
+    const v = data[cle];
+    if (typeof v === "string" && MARQUEURS.test(v)) return `${cle}=${v}`;
+  }
+  return null;
 }
 export async function getTokenInfo(mintAddress) {
   const enMemo = infosToken.get(mintAddress);

@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 
 import { normaliserTrades, agregerTrades, regretParVente, chiffrerDetenu } from "../server/positions.js";
 import { maximaApres } from "../server/gmgnkline.js";
+import { refusDeguise } from "../server/gmgn.js";
 
 // --- Normalising what GMGN sends ------------------------------------------
 
@@ -208,4 +209,37 @@ test("no current price: the peak value stands alone rather than being zeroed", (
   assert.equal(d.valeur_au_sommet, 10000);
   assert.equal(d.valeur_aujourdhui, null);
   assert.equal(d.ecart_au_sommet, null);
+});
+
+// --- A refusal read as data ------------------------------------------------
+//
+// The most expensive mistake this repo has already paid for: a rate-limit ban
+// comes back as an EMPTY array inside an HTTP 200, and read as data it says
+// "this wallet never traded this token". The docstring in gmgn.js warns about
+// it, but nothing detected it, so under load every visitor would have been told
+// a confident lie. Only explicit wording is flagged: a guard that fires on a
+// legitimate answer is worse than no guard.
+
+test("a rate-limit refusal wearing a 200 is caught", () => {
+  for (const corps of [
+    { code: 429, msg: "RATE_LIMIT_BANNED", data: { activities: [] } },
+    { message: "Too Many Requests", data: [] },
+    { error: "rate limit exceeded" },
+    { code: 0, msg: "ip banned", data: { activities: [] } },
+  ]) {
+    assert.ok(refusDeguise(corps), `non detecte: ${JSON.stringify(corps)}`);
+  }
+});
+
+test("an honest empty answer is not mistaken for a refusal", () => {
+  for (const corps of [
+    { code: 0, msg: "success", data: { activities: [] } },
+    { data: { activities: [] } },
+    { data: [] },
+    {},
+    null,
+    { msg: "success", data: { activities: [{ event_type: "buy" }] } },
+  ]) {
+    assert.equal(refusDeguise(corps), null, `faux positif: ${JSON.stringify(corps)}`);
+  }
 });
