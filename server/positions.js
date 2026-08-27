@@ -205,6 +205,45 @@ export function regretParVente(ventes, maxApres) {
   };
 }
 
+// --- The part still held ---------------------------------------------------
+//
+// `regretParVente` walks sales, and only sales. That is the right call: holding
+// is not a decision, so there is nothing to judge and nothing to regret.
+//
+// But on a position still open it leaves the largest number off the screen
+// entirely. Measured on a real NANDRY position on 2026-08-27: $1686 of regret
+// shown on the half that was sold, and $2081 unshown on the half still held,
+// which is worth more than the figure the tool was displaying.
+//
+// So it is computed and shown BESIDE the regret, never folded into it. The two
+// answer different questions, and adding them would invent a sale that was
+// never made.
+//
+// @param sommetDepuis - the highest price reachable since the entry: held
+//   tokens could have been sold at any point after it, so that is their bar.
+// @returns null when nothing is held, so the caller shows nothing rather than
+//   a zero pretending to be an answer.
+
+export function chiffrerDetenu(balance, sommetDepuis, prixMaintenant) {
+  const jetons = num(balance);
+  if (jetons === null || jetons <= 0) return null;
+
+  const sommet = num(sommetDepuis?.prix);
+  const courant = num(prixMaintenant);
+  const auSommet = sommet !== null && sommet > 0 ? jetons * sommet : null;
+  const aujourdhui = courant !== null && courant > 0 ? jetons * courant : null;
+
+  return {
+    jetons,
+    valeur_au_sommet: auSommet,
+    valeur_aujourdhui: aujourdhui,
+    // Deliberately not called a regret: no decision was taken, so nothing was
+    // got wrong. It is the distance between what the position is worth and the
+    // most it was ever worth after the entry.
+    ecart_au_sommet: auSommet !== null && aujourdhui !== null ? auSommet - aujourdhui : null,
+  };
+}
+
 // --- The verdict ----------------------------------------------------------
 //
 // One line, one answer. The order matters: a token that had already topped

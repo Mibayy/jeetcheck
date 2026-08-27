@@ -208,6 +208,17 @@ form{margin-top:clamp(16px,3.4vh,28px);display:flex;gap:10px;flex-wrap:wrap}
 .side.cold{border-color:var(--ice-deep);background:linear-gradient(168deg,var(--ice-wash),var(--void-2))}
 .side.cold .v{color:var(--ice)}
 
+/* Still held. A band and not a third panel, on purpose: dropped into the versus
+   grid it would read as another verdict, and holding is not a decision. Cold
+   hue for the same reason, nothing here has been got right or wrong yet. */
+.held{display:none;margin-top:9px;border:2px solid var(--edge-2);border-left:4px solid var(--ice-deep);
+  border-radius:14px;padding:12px 15px;background:linear-gradient(100deg,var(--ice-wash),var(--void-2) 62%)}
+.held .k{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-3)}
+.held .v{font-family:var(--fat);font-size:clamp(15px,2.9vw,21px);line-height:1.15;letter-spacing:-.02em;
+  margin-top:6px;color:var(--ice);font-variant-numeric:tabular-nums}
+.held .v em{font-style:normal;font-family:var(--mono);font-size:11.5px;color:var(--bone-3);font-weight:400;margin-left:7px;letter-spacing:0}
+.held .why{font-size:11px;line-height:1.65;color:var(--bone-3);margin-top:7px}
+
 details.split{margin-top:clamp(11px,2.2vh,18px);border:2px solid var(--edge-2);border-radius:16px;overflow:hidden}
 details.split summary{cursor:pointer;list-style:none;padding:12px 14px;font-size:11px;letter-spacing:.1em;
   text-transform:uppercase;color:var(--bone-2);background:oklch(0.162 0.018 268);
@@ -276,6 +287,12 @@ details.split[open] summary .chev{transform:rotate(90deg)}
             <div class="v" id="r-right-v"></div>
             <div class="why" id="r-right-why"></div>
           </div>
+        </div>
+
+        <div class="held" id="r-held">
+          <div class="k" id="r-held-k">Still held</div>
+          <div class="v" id="r-held-v"></div>
+          <div class="why" id="r-held-why"></div>
         </div>
 
         <div class="grid">
@@ -472,6 +489,30 @@ function rendre(d) {
     $('r-right-v').innerHTML = sol(v.ecart_aujourdhui_sol) + '<em>SOL more</em>';
     $('r-right-why').textContent = 'What you sold is worth ' + usd(v.valeur_aujourdhui) + ' today, above the '
       + usd(p.sold_income) + ' you took for it.';
+  }
+
+  /* still held: a band of its own, never inside the two figures above. On a
+     half-sold bag the unsold half is routinely the larger gap, and pricing only
+     what was sold flatters the trader by omission. */
+  const garde = $('r-held');
+  const dt = d.detenu;
+  if (!dt) {
+    garde.style.display = 'none';
+  } else {
+    garde.style.display = 'block';
+    const jetons = Math.round(dt.jetons).toLocaleString('en-US') + ' ' + (t.symbol || 'tokens');
+    $('r-held-k').textContent = 'Still held';
+    $('r-held-v').innerHTML = dt.ecart_au_sommet_sol !== null && dt.ecart_au_sommet_sol !== undefined
+      ? sol(dt.ecart_au_sommet_sol) + '<em>SOL below its own peak</em>'
+      : dt.valeur_aujourdhui !== null
+        ? usd(dt.valeur_aujourdhui) + '<em>today</em>'
+        : '—';
+    $('r-held-why').textContent = dt.ecart_au_sommet !== null
+      ? jetons + ', worth ' + usd(dt.valeur_aujourdhui) + ' today against ' + usd(dt.valeur_au_sommet)
+        + ' at the peak after your entry' + (s && s.quand ? ' on ' + heure(s.quand) : '') + '. '
+        + 'Not counted in the figures above: you have not sold it, so there is no decision to judge yet.'
+      : jetons + ' still open. Not counted in the figures above, and not priceable either: '
+        + 'the peak or the current price is missing, and a blank beats a number built on a gap.';
   }
 
   $('r-in').innerHTML = sol(p.bought_sol) + '<em>SOL</em>';

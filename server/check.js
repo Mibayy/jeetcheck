@@ -22,7 +22,7 @@ import {
 import { getSolSeries, faireConvertisseur } from "./solprice.js";
 import { sommetsToken, maximaApres } from "./gmgnkline.js";
 import {
-  normaliserTrades, agregerTrades, regretParVente, verdict,
+  normaliserTrades, agregerTrades, regretParVente, chiffrerDetenu, verdict,
   isValidSolanaAddress, nettoyerSymbole, num, round2,
 } from "./positions.js";
 
@@ -139,6 +139,11 @@ export async function checkToken(mint, wallets) {
   // not a loss, they are a position still open.
   const partVendue = agg.bought_amount ? Math.min(1, agg.sold_amount / agg.bought_amount) : 0;
 
+  // And that open position gets its own number, next to the regret and never
+  // inside it. On a half-sold bag the unsold half is routinely the larger gap,
+  // and a tool that prices only what you sold flatters you by omission.
+  const detenu = chiffrerDetenu(balance, sommets?.depuis, priceNow);
+
   return {
     token: {
       address: mint,
@@ -233,6 +238,19 @@ export async function checkToken(mint, wallets) {
       ventes_sans_sommet: chiffrage.ventes_sans_sommet,
       ventes_au_dessus_des_bougies: chiffrage.ventes_au_dessus_des_bougies,
     },
+    // Its own block, deliberately outside `verdict`: nothing here was decided,
+    // so none of it belongs to a verdict. null when the position is closed.
+    detenu: detenu ? {
+      jetons: detenu.jetons,
+      valeur_au_sommet: round2(detenu.valeur_au_sommet),
+      // At the rate of the day the peak happened. Converting a past high at
+      // today's rate would price it in a currency it never had.
+      valeur_au_sommet_sol: sol.enSol(detenu.valeur_au_sommet, sommets?.depuis?.quand ?? null),
+      valeur_aujourdhui: round2(detenu.valeur_aujourdhui),
+      valeur_aujourdhui_sol: sol.enSol(detenu.valeur_aujourdhui, null),
+      ecart_au_sommet: round2(detenu.ecart_au_sommet),
+      ecart_au_sommet_sol: sol.enSol(detenu.ecart_au_sommet, null),
+    } : null,
     sol_rate: dateRef ? Math.round(sol.tauxA(dateRef) * 100) / 100 : null,
     sol_rate_now: Math.round(sol.tauxCourant * 100) / 100,
     generated_at: maintenant,

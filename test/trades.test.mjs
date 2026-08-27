@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { normaliserTrades, agregerTrades, regretParVente } from "../server/positions.js";
+import { normaliserTrades, agregerTrades, regretParVente, chiffrerDetenu } from "../server/positions.js";
 import { maximaApres } from "../server/gmgnkline.js";
 
 // --- Normalising what GMGN sends ------------------------------------------
@@ -164,4 +164,48 @@ test("no sales at all means no regret to state", () => {
   const r = regretParVente([], () => 1);
   assert.equal(r.regret, null);
   assert.equal(r.ventes_chiffrees, 0);
+});
+
+// --- The part still held --------------------------------------------------
+//
+// `regretParVente` walks sales and only sales, which is right: holding is not a
+// decision, so there is nothing to judge. But on an open position that leaves
+// the largest number off the screen. Measured on a real position: $1686 of
+// regret shown on the sold half, $2081 unshown on the half still held.
+
+test("nothing held: there is no held figure at all, not a zero", () => {
+  assert.equal(chiffrerDetenu(0, { prix: 10, quand: 5000 }, 2), null);
+  assert.equal(chiffrerDetenu(null, { prix: 10, quand: 5000 }, 2), null);
+});
+
+test("held tokens are priced against the peak reachable since entry", () => {
+  const d = chiffrerDetenu(1000, { prix: 10, quand: 5000 }, 2);
+  assert.equal(d.jetons, 1000);
+  assert.equal(d.valeur_au_sommet, 10000);
+  assert.equal(d.valeur_aujourdhui, 2000);
+  assert.equal(d.ecart_au_sommet, 8000);
+});
+
+// The two numbers answer different questions. Adding them would invent a sale
+// that was never made, which is the one thing this tool exists not to do.
+test("the held figure never lands in the regret", () => {
+  const ventes = [{ t: 1000, amount: 100, usd: 100, prix: 1 }];
+  const chiffrage = regretParVente(ventes, () => 5);
+  const avecSolde = chiffrerDetenu(9_000_000, { prix: 5, quand: 5000 }, 1);
+  assert.equal(chiffrage.regret, 400);          // 100 tokens x $5, minus the $100 taken
+  assert.ok(avecSolde.ecart_au_sommet > chiffrage.regret * 100, "held gap dwarfs it, and stays separate");
+});
+
+test("no peak: the held value is still shown, the gap is not invented", () => {
+  const d = chiffrerDetenu(1000, null, 2);
+  assert.equal(d.valeur_aujourdhui, 2000);
+  assert.equal(d.valeur_au_sommet, null);
+  assert.equal(d.ecart_au_sommet, null);
+});
+
+test("no current price: the peak value stands alone rather than being zeroed", () => {
+  const d = chiffrerDetenu(1000, { prix: 10, quand: 5000 }, null);
+  assert.equal(d.valeur_au_sommet, 10000);
+  assert.equal(d.valeur_aujourdhui, null);
+  assert.equal(d.ecart_au_sommet, null);
 });

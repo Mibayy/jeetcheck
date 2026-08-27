@@ -97,6 +97,15 @@
         "ventes_sans_sommet": 0,
         "ventes_au_dessus_des_bougies": 1
     },
+    "detenu": {
+        "jetons": 10277779.440927,
+        "valeur_au_sommet": 1451.22,
+        "valeur_au_sommet_sol": 15.4681,
+        "valeur_aujourdhui": 231.93,
+        "valeur_aujourdhui_sol": 2.3652,
+        "ecart_au_sommet": 1219.28,
+        "ecart_au_sommet_sol": 12.434
+    },
     "sol_rate": 93.82,
     "sol_rate_now": 98.06,
     "generated_at": 1787671276,

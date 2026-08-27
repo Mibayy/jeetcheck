@@ -168,3 +168,19 @@ test("submitting with no token asks for one instead of calling the API", async (
   assert.match(r.texte("err"), /token address/i);
   assert.ok(!r.document.getElementById("s2").classList.contains("on"));
 });
+
+// --- The band for what is still held --------------------------------------
+
+test("a position still open shows what the unsold half is worth, beside the regret", async () => {
+  const r = await lancer(charge("check-roundtrip.json"), { wallets: ["W1", "W2"] });
+  const bande = r.document.getElementById("r-held");
+  assert.notEqual(bande.style.display, "none", "the band is shown when tokens are still held");
+  // The regret on screen must stay the regret on the SALES, untouched.
+  assert.match(r.texte("r-left-v"), /17\.73|1663/, "the sold-side figure is unchanged");
+  assert.match(r.texte("r-held-why"), /not counted/i, "and the band says it is not counted in it");
+});
+
+test("a position fully closed shows no held band", async () => {
+  const r = await lancer(charge("check-un-wallet.json"), { wallets: ["W1"] });
+  assert.equal(r.document.getElementById("r-held").style.display, "none");
+});

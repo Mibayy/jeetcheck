@@ -81,6 +81,7 @@
         "ventes_sans_sommet": 0,
         "ventes_au_dessus_des_bougies": 2
     },
+    "detenu": null,
     "sol_rate": 95.43,
     "sol_rate_now": 98.06,
     "generated_at": 1787671353,
