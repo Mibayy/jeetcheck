@@ -4,7 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { verdict } from "../server/positions.js";
-import { choisirResolutions, sommetDeSerie, serieCouvre, sommetsToken, SEUIL_BOUGIES } from "../server/gmgnkline.js";
+import { choisirResolutions, sommetDeSerie, serieCouvre, sommetsToken, viderSeries,
+         FRAICHEUR_SERIE_S, SEUIL_BOUGIES } from "../server/gmgnkline.js";
 
 const H = 3600, J = 86400;
 
@@ -227,7 +228,7 @@ test("a series that starts on time but is full of holes is refused for a coarser
     if (res === "5m") return bougies(debut, maintenant, 500 * 60);
     return bougies(debut, maintenant, 900);
   };
-  const s = await sommetsToken("MINT", { creation, entree: creation + 60, maintenant }, faux);
+  const s = await sommetsToken("MINT-TROU", { creation, entree: creation + 60, maintenant }, faux);
   assert.equal(s.resolution, "15m");
   assert.ok(appels.includes("5m"), "the finest resolution is still tried first");
 });
@@ -235,14 +236,14 @@ test("a series that starts on time but is full of holes is refused for a coarser
 test("a dense series at the finest resolution is kept", async () => {
   const creation = 1000000, maintenant = creation + J;
   const faux = async (res, fromMs) => bougies(Math.floor(fromMs / 1000), maintenant, res === "5m" ? 300 : 900);
-  const s = await sommetsToken("MINT", { creation, entree: creation + 60, maintenant }, faux);
+  const s = await sommetsToken("MINT-DENSE", { creation, entree: creation + 60, maintenant }, faux);
   assert.equal(s.resolution, "5m");
 });
 
 test("the bucket the lifetime peak was read off is reported", async () => {
   const creation = 1000000, maintenant = creation + J;
   const faux = async (res, fromMs) => bougies(Math.floor(fromMs / 1000), maintenant, res === "5m" ? 300 : 900);
-  const s = await sommetsToken("MINT", { creation, entree: creation + 60, maintenant }, faux);
+  const s = await sommetsToken("MINT-SEAU", { creation, entree: creation + 60, maintenant }, faux);
   assert.equal(s.seau_vie, 300);
 });
 
@@ -263,9 +264,9 @@ const pipeline = (res) => async (r, fromMs) => bougies(Math.floor(fromMs / 1000)
 test("pump.fun confirming the peak hands over its date, not its price", async () => {
   const creation = 1000000, maintenant = creation + J;
   const faux = pipeline({ fin: maintenant });
-  const nu = await sommetsToken("MINT", { creation, entree: creation + 60, maintenant }, faux);
+  const nu = await sommetsToken("MINT-PF-OK", { creation, entree: creation + 60, maintenant }, faux);
   const ath = { prix: nu.vie.prix * 1.008, quand: nu.vie.quand + 173 };
-  const s = await sommetsToken("MINT", { creation, entree: creation + 60, maintenant }, faux, async () => ath);
+  const s = await sommetsToken("MINT-PF-OK", { creation, entree: creation + 60, maintenant }, faux, async () => ath);
   assert.equal(s.vie.prix, nu.vie.prix, "the candle price stands");
   assert.equal(s.vie.quand, ath.quand, "the date comes from pump.fun");
   assert.equal(s.seau_vie, 0, "and it is no longer bound by a bucket");
@@ -278,8 +279,8 @@ test("pump.fun confirming the peak hands over its date, not its price", async ()
 test("pump.fun disagreeing on the price changes nothing, and says so", async () => {
   const creation = 1000000, maintenant = creation + J;
   const faux = pipeline({ fin: maintenant });
-  const nu = await sommetsToken("MINT", { creation, entree: creation + 60, maintenant }, faux);
-  const s = await sommetsToken("MINT", { creation, entree: creation + 60, maintenant }, faux,
+  const nu = await sommetsToken("MINT-PF-KO", { creation, entree: creation + 60, maintenant }, faux);
+  const s = await sommetsToken("MINT-PF-KO", { creation, entree: creation + 60, maintenant }, faux,
     async () => ({ prix: nu.vie.prix * 21, quand: creation + 30 }));
   assert.equal(s.vie.quand, nu.vie.quand, "the candle date stands");
   assert.equal(s.seau_vie, nu.seau_vie);
@@ -289,9 +290,9 @@ test("pump.fun disagreeing on the price changes nothing, and says so", async () 
 test("no pump.fun answer leaves the candle peak exactly as it was", async () => {
   const creation = 1000000, maintenant = creation + J;
   const faux = pipeline({ fin: maintenant });
-  const nu = await sommetsToken("MINT", { creation, entree: creation + 60, maintenant }, faux);
+  const nu = await sommetsToken("MINT-PF-MUET", { creation, entree: creation + 60, maintenant }, faux);
   for (const source of [async () => null, async () => { throw new Error("429"); }]) {
-    const s = await sommetsToken("MINT", { creation, entree: creation + 60, maintenant }, faux, source);
+    const s = await sommetsToken("MINT-PF-MUET", { creation, entree: creation + 60, maintenant }, faux, source);
     assert.equal(s.vie.quand, nu.vie.quand);
     assert.equal(s.seau_vie, nu.seau_vie);
     assert.equal(s.vie_source, "bougies");
@@ -301,7 +302,101 @@ test("no pump.fun answer leaves the candle peak exactly as it was", async () => 
 test("a token that is not on pump.fun keeps the candle answer untouched", async () => {
   const creation = 1000000, maintenant = creation + J;
   const faux = pipeline({ fin: maintenant });
-  const s = await sommetsToken("MINT", { creation, entree: creation + 60, maintenant }, faux);
+  const s = await sommetsToken("MINT-PF-ABSENT", { creation, entree: creation + 60, maintenant }, faux);
   assert.equal(s.vie_source, "bougies");
   assert.equal(s.seau_vie, 300);
+});
+
+// --- The series, cached per token ------------------------------------------
+//
+// The costly half of a check is the candle series, and it depends on the TOKEN
+// alone: `depuis` is derived from it per caller, which is pure arithmetic. The
+// old cache was keyed on token|wallets and lived three minutes, so two visitors
+// checking the same token with different wallets shared nothing. That is fine
+// for one user and hopeless for distribution, where the whole point is that
+// many people check the SAME token at once.
+//
+// Freshness is measured against the `maintenant` handed in, not the clock, so
+// it is testable without waiting and cannot drift with the machine's time.
+
+const compteur = () => {
+  const etat = { n: 0 };
+  etat.appel = async (res, fromMs) => {
+    etat.n += 1;
+    return bougies(Math.floor(fromMs / 1000), etat.fin, res === "5m" ? 300 : 900);
+  };
+  return etat;
+};
+
+test("the same token twice does not fetch the series twice", async () => {
+  viderSeries();
+  const creation = 1000000, maintenant = creation + J;
+  const c = compteur(); c.fin = maintenant;
+  await sommetsToken("MINT-A", { creation, entree: creation + 60, maintenant }, c.appel);
+  const apresUn = c.n;
+  await sommetsToken("MINT-A", { creation, entree: creation + 60, maintenant }, c.appel);
+  assert.ok(apresUn > 0, "the first call really fetched");
+  assert.equal(c.n, apresUn, "the second fetched nothing");
+});
+
+// The whole reason the cache can be keyed on the token: `depuis` is recomputed
+// from the cached series, so a different entry gets its own answer without the
+// series being fetched again. A late entry lands on a DIFFERENT peak bucket, so
+// it does pay for one refining call, and one only: the cold path costs two.
+test("a different entry gets its own peak, and pays only for refining it", async () => {
+  viderSeries();
+  const creation = 1000000, maintenant = creation + J;
+  const c = compteur(); c.fin = maintenant;
+  const tot = await sommetsToken("MINT-G", { creation, entree: creation + 60, maintenant }, c.appel);
+  const froid = c.n;
+  const tard = await sommetsToken("MINT-G", { creation, entree: maintenant - 3600, maintenant }, c.appel);
+  assert.equal(c.n - froid, 1, "one call, for the new peak's bucket, not the whole series");
+  assert.ok(froid >= 2, "the cold path really did cost more");
+  assert.notDeepEqual(tard.depuis, tot.depuis, "and the answers differ");
+});
+
+// The case distribution is actually made of: many visitors on the same hot
+// token, all of whom entered before its one big top, so all of them land on the
+// SAME `depuis`. From the second visitor on, a check costs no candle call at all.
+test("two entries landing on the same peak cost nothing after the first", async () => {
+  viderSeries();
+  const creation = 1000000, maintenant = creation + J;
+  const c = compteur(); c.fin = maintenant;
+  const a = await sommetsToken("MINT-H", { creation, entree: creation + 60, maintenant }, c.appel);
+  const froid = c.n;
+  const b = await sommetsToken("MINT-H", { creation, entree: creation + 120, maintenant }, c.appel);
+  assert.deepEqual(b.depuis, a.depuis, "same peak, as the premise of this test");
+  assert.equal(c.n, froid, "and not one call for the second visitor");
+});
+
+test("past the freshness window the series is fetched again", async () => {
+  viderSeries();
+  const creation = 1000000, maintenant = creation + J;
+  const c = compteur(); c.fin = maintenant + FRAICHEUR_SERIE_S + 60;
+  await sommetsToken("MINT-C", { creation, entree: creation + 60, maintenant }, c.appel);
+  const apresUn = c.n;
+  await sommetsToken("MINT-C", { creation, entree: creation + 60, maintenant: maintenant + FRAICHEUR_SERIE_S + 1 }, c.appel);
+  assert.ok(c.n > apresUn, "a stale series is not served");
+});
+
+// A cached series that starts later than this caller needs is not a smaller
+// answer, it is the wrong one: same reasoning as the coverage guard.
+test("a caller needing an earlier start does not get the cached series", async () => {
+  viderSeries();
+  const creation = 1000000, maintenant = creation + J;
+  const c = compteur(); c.fin = maintenant;
+  await sommetsToken("MINT-D", { creation: null, entree: creation + 40000, maintenant }, c.appel);
+  const apresUn = c.n;
+  await sommetsToken("MINT-D", { creation, entree: creation + 60, maintenant }, c.appel);
+  assert.ok(c.n > apresUn, "it refetches from the earlier start");
+});
+
+test("two different tokens never share a series", async () => {
+  viderSeries();
+  const creation = 1000000, maintenant = creation + J;
+  const c = compteur(); c.fin = maintenant;
+  await sommetsToken("MINT-E", { creation, entree: creation + 60, maintenant }, c.appel);
+  const apresUn = c.n;
+  await sommetsToken("MINT-F", { creation, entree: creation + 60, maintenant }, c.appel);
+  assert.ok(c.n > apresUn);
 });

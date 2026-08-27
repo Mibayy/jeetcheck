@@ -271,13 +271,38 @@ export async function getTokenKline(mintAddress, resolution, fromMs, toMs, limit
   return (data?.data ?? data)?.list ?? [];
 }
 
+
+// Token info, briefly cached. It is per TOKEN, and under distribution the same
+// token is looked up by every visitor at once. The catch is that this payload
+// also carries the CURRENT price, which drives "was I right to sell": a long
+// TTL would answer that question with yesterday's price. Sixty seconds bounds
+// the staleness to something no one can act on while still collapsing the call
+// for a token being checked by a crowd.
+const infosToken = new Map();
+const TTL_INFO_MS = 60 * 1000;
+const MAX_INFOS = 500;
+
+/** For tests and for anything that needs a cold read. */
+export function viderInfosToken() {
+  infosToken.clear();
+}
 export async function getTokenInfo(mintAddress) {
+  const enMemo = infosToken.get(mintAddress);
+  if (enMemo && enMemo.expire > Date.now()) return enMemo.valeur;
+
   const data = await gmgnRequestWithRetry(
     "/v1/token/info",
     { chain: "sol", address: mintAddress },
     "exist"
   );
-  return data?.data ?? data;
+  const valeur = data?.data ?? data;
+  // A refusal read as data is the trap this repo has already paid for once: an
+  // empty answer is not cached, so a ban does not get frozen in for a minute.
+  if (valeur) {
+    if (infosToken.size > MAX_INFOS) infosToken.clear();
+    infosToken.set(mintAddress, { valeur, expire: Date.now() + TTL_INFO_MS });
+  }
+  return valeur;
 }
 
 /**

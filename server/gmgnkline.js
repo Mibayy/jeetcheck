@@ -97,6 +97,74 @@ export function trouMax(serie, sec) {
   return max;
 }
 
+// --- The series, cached per token ------------------------------------------
+//
+// The costly half of a check is this series, and it depends on the TOKEN alone.
+// `depuis` is derived from it per caller, which is pure arithmetic over an array
+// already in hand. The check's own cache was keyed on token|wallets and lived
+// three minutes, so two visitors checking the same token with different wallets
+// shared nothing at all. Fine for one user, hopeless for distribution, where the
+// whole point is that many people check the SAME token at the same time.
+//
+// Freshness is measured against the `maintenant` handed in, never the clock: it
+// makes the behaviour testable without waiting, and it cannot drift with the
+// machine's time.
+//
+// Readers never mutate: sommetDeSerie filters and maximaApres copies before
+// sorting, so the cached array is safe to hand to several callers at once.
+const series = new Map();
+
+// A live token grows new candles, so its series goes stale fast. Once its last
+// candle is a day old there is nothing left to add, and it can be kept far
+// longer. Same two-speed reasoning as the pump.fun store, and the same accepted
+// risk: a dead token that revives will be served a stale series until the
+// window passes.
+export const FRAICHEUR_SERIE_S = 10 * 60;
+export const FRAICHEUR_SERIE_MORTE_S = 24 * 60 * 60;
+const AGE_MORTE_S = 24 * 60 * 60;
+const MAX_SERIES = 300;
+
+/** Empties the store. For tests, and for anything that needs a cold read. */
+export function viderSeries() {
+  series.clear();
+  affinages.clear();
+}
+
+/**
+ * The cached series for `mint`, or null. Refuses an entry that starts later
+ * than the caller needs: a series that does not reach back to the requested
+ * date is not a smaller answer, it is a wrong one. Same rule as serieCouvre.
+ */
+function serieEnCache(mint, debut, maintenant) {
+  const c = series.get(mint);
+  if (!c || c.debut > debut || maintenant < c.maintenant) return null;
+  const morte = c.maintenant - c.fin > AGE_MORTE_S;
+  const limite = morte ? FRAICHEUR_SERIE_MORTE_S : FRAICHEUR_SERIE_S;
+  return maintenant - c.maintenant <= limite ? c : null;
+}
+
+function garderSerie(mint, entree) {
+  if (series.size > MAX_SERIES) series.clear();
+  series.set(mint, entree);
+}
+
+// The refining pass costs one more call, and it is keyed on the peak it is
+// dating, not on the caller. On a token that had one real top, every visitor who
+// entered before it lands on the SAME `depuis`, so they all refine the same
+// bucket: caching it by that bucket collapses the last candle call to zero for
+// the second visitor onward.
+const affinages = new Map();
+const MAX_AFFINAGES = 1000;
+
+function affinageEnCache(mint, res, quand) {
+  return affinages.get(`${mint}|${res}|${quand}`) ?? null;
+}
+
+function garderAffinage(mint, res, quand, valeur) {
+  if (affinages.size > MAX_AFFINAGES) affinages.clear();
+  affinages.set(`${mint}|${res}|${quand}`, valeur);
+}
+
 // Calibrated on the same measurement, and deliberately far from both ends: the
 // sick series was at 1048 buckets, the healthiest of the real series at 12. A
 // threshold of 10 would have cried wolf on three series that gave the right
@@ -182,18 +250,32 @@ export async function sommetsToken(mint, { creation, entree, maintenant }, appel
   let choisie = null;
   let couverture = false;
 
-  for (const cand of choisirResolutions(maintenant - debut)) {
-    // One full bucket of margin before the start: see note 3 above.
-    const brut = await appel(cand.res, (debut - cand.sec) * 1000, maintenant * 1000);
-    const s = normaliser(brut);
-    if (!s.length) continue;
-    serie = s;
-    choisie = cand;
-    // Truncated from the start, or riddled with holes: two ways of omitting the
-    // window, and neither is a smaller answer. Both take the same exit, because
-    // a coarser candle covers the same span with fewer buckets and fills what
-    // the finer one left out. Retrying finer would only truncate harder.
-    if (serieCouvre(s, debut) && trouMax(s, cand.sec) <= TROU_MAX_SEAUX) { couverture = true; break; }
+  // The series belongs to the token, so a second visitor on the same token pays
+  // nothing for it. See the store above for what "still fresh" means here.
+  const enCache = serieEnCache(mint, debut, maintenant);
+  if (enCache) {
+    ({ serie, choisie, couverture } = enCache);
+  } else {
+    for (const cand of choisirResolutions(maintenant - debut)) {
+      // One full bucket of margin before the start: see note 3 above.
+      const brut = await appel(cand.res, (debut - cand.sec) * 1000, maintenant * 1000);
+      const s = normaliser(brut);
+      if (!s.length) continue;
+      serie = s;
+      choisie = cand;
+      // Truncated from the start, or riddled with holes: two ways of omitting
+      // the window, and neither is a smaller answer. Both take the same exit,
+      // because a coarser candle covers the same span with fewer buckets and
+      // fills what the finer one left out. Retrying finer would only truncate
+      // harder.
+      if (serieCouvre(s, debut) && trouMax(s, cand.sec) <= TROU_MAX_SEAUX) { couverture = true; break; }
+    }
+    // `normaliser` sorts ascending, so the last candle is the newest.
+    if (choisie && serie.length) {
+      garderSerie(mint, {
+        serie, choisie, couverture, debut, maintenant, fin: serie[serie.length - 1].t,
+      });
+    }
   }
 
   if (!choisie || !serie.length) return null;
@@ -248,8 +330,16 @@ export async function sommetsToken(mint, { creation, entree, maintenant }, appel
     const fine = choisirResolutions(choisie.sec * 2)[0];
     if (fine.sec < choisie.sec) {
       try {
-        const brut = await appel(fine.res, (depuis.quand - fine.sec) * 1000, fin * 1000);
-        const s = normaliser(brut);
+        // The fine SERIES is cached, not the peak read off it: that peak is
+        // filtered by `entree`, which belongs to the caller, while the window
+        // asked for depends only on the bucket being refined. Caching the
+        // conclusion instead of the evidence would hand one visitor's entry
+        // date to the next one.
+        let s = affinageEnCache(mint, fine.res, depuis.quand);
+        if (!s) {
+          s = normaliser(await appel(fine.res, (depuis.quand - fine.sec) * 1000, fin * 1000));
+          garderAffinage(mint, fine.res, depuis.quand, s);
+        }
         const affine = sommetDeSerie(s, entree ?? debut, fine.sec);
         // The refined window is narrow, so it can only confirm the peak, never
         // beat it. If it comes back lower, it missed the bucket: we keep the
